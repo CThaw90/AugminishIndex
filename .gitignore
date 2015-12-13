@@ -2,5 +2,6 @@
 .gradle/
 /build/
 .classpath
+.ignore/
 .project
 /bin/

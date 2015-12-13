@@ -2,10 +2,16 @@ apply plugin: 'application'
 apply plugin: 'eclipse'
 apply plugin: 'java'
 
-mainClassName = "com.augminish.index.Main"
+mainClassName = "com.augminish.app.Main"
 
 repositories {
 	mavenCentral();
+}
+
+eclipse {
+    classpath {
+       downloadSources=true
+    }
 }
 
 dependencies {
