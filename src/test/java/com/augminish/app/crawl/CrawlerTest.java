@@ -10,21 +10,26 @@ import org.jsoup.select.Elements;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.gargoylesoftware.htmlunit.WebClient;
+
 public class CrawlerTest {
 
 	private static final String html = "<html><head><title>This is a title</title></head><body></body></html>";
 	
+	private static final String WEIRD_BYTE_STRING = new String(new byte[] {-96});
+	WebClient wc = new WebClient(com.gargoylesoftware.htmlunit.BrowserVersion.FIREFOX_2);
 	Document document = null;
-	
+	// WebClient wc = new WebClient();
 	public CrawlerTest() {
 		try {
-			document = Jsoup.connect("http://localhost/indexing/tests/music.html").get();
+			document = Jsoup.connect("http://augminish.com/tests/music_theory.html").get();
+			
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
 	
-	@Test
+//	@Test
 	public void HtmlParserTest() {
 		
 		Document d = Jsoup.parse(html);
@@ -43,7 +48,7 @@ public class CrawlerTest {
 		Assert.assertEquals("Child element at position 1 of Html node should be body", "body", body.tagName());
 	}
 	
-	@Test
+//	@Test
 	public void anchorTagAndHyperReferenceTest() {
 		
 		String[] values = {
@@ -73,7 +78,7 @@ public class CrawlerTest {
 		}
 	}
 	
-	@Test
+//	@Test
 	public void metaTagAndAttributesTest() {
 		
 		int a = 0, v = 1, avi = 0, tags = 0;
@@ -84,9 +89,9 @@ public class CrawlerTest {
 			"property:og:image",		
 			"content:http://www.musictheory.net/vc/4/0/718b0256f94435645de3ab98cacff4575ce7ea88/logo.png"
 		};
-		Elements metaTags = document.select("meta");
+		Element music_html = document.child(0);
 		
-		for (Element meta : metaTags) {
+		for (Element meta : music_html.select("meta")) {
 			
 			for (Attribute attribute : meta.attributes()) {
 				String[] attr = av[avi++].split(":", 2);
@@ -99,13 +104,13 @@ public class CrawlerTest {
 		Assert.assertEquals("There should be six meta tags in the head node", 6, tags);
 	}
 	
-	@Test
+//	@Test
 	public void extractAllTextTest() {
 		
 		String[] texts = {
 			"musictheory.net - Lessons", "Our lessons are provided online for free. If they help you, please to support the site.",
 			"purchase our apps", "Purchase", "Theory Lessons", "On-the-go mobile access to the lessons, for your iPhone, iPad, and iPod touch.",
-			"Learn&nbsp;more", "THE BASICS", "The Staff, Clefs, and Ledger Lines", "Learn about the staff, treble and bass clefs, and ledger lines.",
+			"Learn more", "THE BASICS", "The Staff, Clefs, and Ledger Lines", "Learn about the staff, treble and bass clefs, and ledger lines.",
 			"Note Duration", "Learn about five types of notes and how flags affect note duration.", "Measures and Time Signature",
 			"Learn about measures and how many notes each can contain.", "Rest Duration", "Learn about the different types of rest.",
 			"Dots and Ties", "Learn how dots and ties modify the duration of notes.", "Steps and Accidentals", "Learn about half steps, whole steps, and  accidentals.",
@@ -137,7 +142,7 @@ public class CrawlerTest {
 		
 		for (Element el : elements) {
 			String text = el.ownText().trim();
-			if (!text.isEmpty()) {
+			if (!text.isEmpty() && !text.equals(WEIRD_BYTE_STRING)) {
 				Assert.assertEquals(texts[index++], text);
 			}
 			
@@ -145,5 +150,12 @@ public class CrawlerTest {
 		}
 		
 		return index;
+	}
+	
+//	@Test
+	public void byteToStringTest() {
+		byte[] bytes = {-96};
+		String s = new String(bytes);
+		Assert.assertTrue(s.equals(" "));
 	}
 }
