@@ -20,10 +20,7 @@ public class FileHandler {
 
         file = new File(path);
         if (!file.exists()) {
-
-            if (!file.createNewFile()) {
-                saved = false;
-            }
+            saved = file.createNewFile();
         }
 
         if (saved) {
@@ -37,5 +34,24 @@ public class FileHandler {
         }
 
         return saved;
+    }
+
+    protected boolean delete(String path) {
+
+        boolean deleted = false;
+
+        file = new File(path);
+        if (!file.exists()) {
+            deleted = true;
+        }
+        else {
+            deleted = file.delete();
+        }
+
+        return deleted;
+    }
+
+    protected void createDirs(String path) {
+
     }
 }

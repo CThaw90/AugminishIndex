@@ -5,6 +5,7 @@ import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.WebResponse;
 
+import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
 import java.io.IOException;
@@ -57,6 +58,7 @@ public class Crawler {
             domain = getDomainFrom(url);
 
             saveToFile(domain, url, content);
+            document = Jsoup.parse(content);
         }
     }
 
