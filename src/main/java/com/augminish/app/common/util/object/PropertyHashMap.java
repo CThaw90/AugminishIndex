@@ -1,4 +1,4 @@
-package com.augminish.app.common.object;
+package com.augminish.app.common.util.object;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -16,8 +16,9 @@ public class PropertyHashMap {
     public PropertyHashMap() throws IOException {
 
         if (hashMap == null) {
-
+            
             inputStream = new FileInputStream("./.ignore/config.properties");
+            properties = new Properties();
             properties.load(inputStream);
 
             if (inputStream != null) {

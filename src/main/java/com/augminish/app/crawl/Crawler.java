@@ -58,6 +58,7 @@ public class Crawler {
             domain = getDomainFrom(url);
 
             saveToFile(domain, url, content);
+            // TODO: Place this logic in another thread for efficiency
             document = Jsoup.parse(content);
         }
     }
