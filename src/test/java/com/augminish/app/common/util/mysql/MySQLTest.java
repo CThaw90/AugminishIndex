@@ -58,6 +58,4 @@ public class MySQLTest {
     private static void createTestTable() {
         mysql.create(SqlBuilder.createTable(TEST_TABLE, "id INT(11) NOT NULL AUTO_INCREMENT", "testString VARCHAR(512) NOT NULL", "PRIMARY KEY (id)"));
     }
-    
-    
 }

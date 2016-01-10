@@ -84,7 +84,7 @@ public class MySQL {
     public boolean create(String query) {
         
         boolean created = false;
-        if (query.matches("^CREATE[\\s+]\\w+.*")) {
+        if (connected && query.matches("^CREATE[\\s+]\\w+.*")) {
             
             try {
                 statement = connection.prepareStatement(query);
@@ -103,26 +103,24 @@ public class MySQL {
     
     public List<HashMap<String, Object>> select (String query) {
         
-        if (connected) {
+        if (connected && query.matches("^SELECT[\\s+]\\w+.*")) {
             try {
                 data = new ArrayList<HashMap<String, Object>>();
                 statement = connection.prepareStatement(query);
+                
                 if (statement.execute(query, Statement.RETURN_GENERATED_KEYS)) {
                     rs = statement.getResultSet();
                     
                     while (rs != null && rs.next()) {
-                        
                         rsMetaData = rs.getMetaData();
                         numOfCols = rsMetaData.getColumnCount();
                         row = new HashMap<String, Object>();
                         
                         for (int column=1; column <= numOfCols; column++) {
-                            
                             columnName = rsMetaData.getColumnLabel(column);
                             sqlType = rsMetaData.getColumnType(column);
                             
                             switch (sqlType) {
-                                
                                 case Types.CHAR:
                                 case Types.VARCHAR:
                                 case Types.DATE:
@@ -150,7 +148,6 @@ public class MySQL {
                                 default:
                                     row.put(columnName, rs.getString(columnName));
                                     break;
-                                    
                             }
                         }
                         
@@ -159,12 +156,45 @@ public class MySQL {
                 }
                 
             } catch (SQLException sql) {
-                
                 // TODO: Try and get this statement to catch SQLExceptions 
             }
         }
         
         return data;
+    }
+    
+    public boolean insert (String query) {
+        
+        boolean inserted = false;
+        if (connected && query.matches("^INSERT[\\s+]\\w+.*")) {
+            try {
+                statement = connection.prepareStatement(query);     
+                statement.executeUpdate();
+                inserted = true;
+            }
+            catch (SQLException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+        
+        return inserted;
+    }
+    
+    public boolean update (String query) {
+        
+        boolean updated = false;
+        if (connected && query.matches("^UPDATE[\\s+]\\w+.*")) {
+            try {
+                statement = connection.prepareStatement(query);
+                statement.executeUpdate();
+                updated = true;
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        
+        return updated;
     }
 
     private void loadConfig() {
