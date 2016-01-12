@@ -5,13 +5,15 @@ import org.junit.Test;
 
 public class SqlBuilderTest {
     
-    private static final String CREATE_DATABASE_VALUE = "CREATE DATABASE IF NOT EXISTS TESTING DATABASE;";
-    private static final String CREATE_TABLE_VALUE = "CREATE TABLE IF NOT EXISTS TESTING TABLE ( " + 
+    private static final String CREATE_DATABASE_VALUE = "CREATE DATABASE IF NOT EXISTS TESTING_DATABASE;";
+    private static final String CREATE_TABLE_VALUE = "CREATE TABLE IF NOT EXISTS TESTING_TABLE ( " + 
                                                      "id INT(11) NOT NULL AUTO_INCREMENT," + 
                                                      "testString VARCHAR(512) NOT NULL," +
                                                      "PRIMARY KEY (id) );";
-    private static final String DATABASE_NAME = "TESTING DATABASE";
-    private static final String TABLE_NAME = "TESTING TABLE";
+    private static final String INSERT_INTO_TABLE = "INSERT INTO TESTING_TABLE ( id,testString )";
+    private static final String WITH_VALUES = " VALUES ( ?&12345,?&RANDOMLY_INSERTED_STRING );";
+    private static final String DATABASE_NAME = "TESTING_DATABASE";
+    private static final String TABLE_NAME = "TESTING_TABLE";
     
     @Test
     public void createDatabaseTest() {
@@ -28,11 +30,16 @@ public class SqlBuilderTest {
                         "PRIMARY KEY (id)"));
     }
     
-    public void insertIntoTest() {
-        
+    @Test(expected = RuntimeException.class)
+    public void prematureCommitTest() {
+        Assert.assertEquals("SqlBuilder should throw RuntimeException when premature commit method invoked", 
+                INSERT_INTO_TABLE, SqlBuilder.insertInto(TABLE_NAME, "id", "testString").commit());
     }
     
-    public void withValuesTest() {
-        
+    @Test
+    public void inserIntoWithValuesTest() {
+        Assert.assertEquals("SqlBuilder should return a valid Insert query with values", 
+                INSERT_INTO_TABLE + WITH_VALUES, 
+                SqlBuilder.insertInto(TABLE_NAME, "id", "testString").withValues("12345", "RANDOMLY_INSERTED_STRING").commit());
     }
 }
