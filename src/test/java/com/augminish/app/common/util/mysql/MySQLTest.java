@@ -4,15 +4,12 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.augminish.app.common.util.SqlBuilder;
+import com.augminish.app.common.util.strings.StaticString;
 
 import org.junit.Assert;
 
 public class MySQLTest {
     
-    private static final String CREATE_ERROR_X = "CREATEERROR TABLE";
-    private static final String CREATE_ERROR = "DO NOT CREATE";
-    private static final String TEST_TABLE = "IndexerTests";
-    private static final String TEST_DB = "Test";
     private static MySQL mysql;
     
     @BeforeClass
@@ -24,20 +21,20 @@ public class MySQLTest {
     public void mysqlConnectTest() {
         makeSureMySQLisDisconnected();
         
-        Assert.assertFalse("MySQL should not yet be connected", mysql.isConnected());
-        Assert.assertTrue("MySQL Driver should successfully connect", mysql.connect());
-        Assert.assertTrue("MySQL should be connected", mysql.isConnected());
-        Assert.assertTrue("MySQL Driver should disconnect successfully", mysql.disconnect());
-        Assert.assertFalse("MySQL should not be connected", mysql.isConnected());
+        Assert.assertFalse(StaticString.MYSQL_CONNECT_TEST_DISCONNECTED_ASSERT_DESCRIPTION, mysql.isConnected());
+        Assert.assertTrue(StaticString.MYSQL_CONNECT_TEST_SHOULD_CONNECT_ASSERT_DESCRIPTION, mysql.connect());
+        Assert.assertTrue(StaticString.MYSQL_CONNECT_TEST_SHOULD_BE_CONNECTED_ASSERT_DESCRIPTION, mysql.isConnected());
+        Assert.assertTrue(StaticString.MYSQL_CONNECT_TEST_DISCONNECT_ASSERT_DESCRIPTION, mysql.disconnect());
+        Assert.assertFalse(StaticString.MYSQL_CONNECT_TEST_DISCONNECTED_ASSERT_DESCRIPTION, mysql.isConnected());
     }
     
     @Test
     public void mysqlCreateTest() {
         makeSureMySQLisConnected();
         
-        Assert.assertFalse("MySQL should return false passing in a non creating query", mysql.create(CREATE_ERROR));
-        Assert.assertFalse("MySQL should return false passing in a non creating query", mysql.create(CREATE_ERROR_X));
-        Assert.assertTrue("MySQL should return true creating a database called Test", mysql.create(SqlBuilder.createDatabase(TEST_DB)));
+        Assert.assertFalse(StaticString.MYSQL_CREATE_TEST_INVALID_QUERY_ASSERT_DESCRIPTION, mysql.create(StaticString.CREATE_ERROR));
+        Assert.assertFalse(StaticString.MYSQL_CREATE_TEST_INVALID_QUERY_ASSERT_DESCRIPTION, mysql.create(StaticString.CREATE_ERROR_X));
+        Assert.assertTrue(StaticString.MYSQL_CREATE_TEST_CREATE_DB_ASSERT_DESCRIPTION, mysql.create(SqlBuilder.createDatabase(StaticString.TEST_DB)));
     }
     
     @Test
@@ -56,6 +53,6 @@ public class MySQLTest {
     
  // CREATE TABLE IndexerTests (id INT(11) NOT NULL AUTO_INCREMENT, testString VARCHAR(512) NOT NULL, PRIMARY KEY (id));
     private static void createTestTable() {
-        mysql.create(SqlBuilder.createTable(TEST_TABLE, "id INT(11) NOT NULL AUTO_INCREMENT", "testString VARCHAR(512) NOT NULL", "PRIMARY KEY (id)"));
+        mysql.create(SqlBuilder.createTable(StaticString.TEST_TABLE, "id INT(11) NOT NULL AUTO_INCREMENT", "testString VARCHAR(512) NOT NULL", "PRIMARY KEY (id)"));
     }
 }

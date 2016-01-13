@@ -5,10 +5,12 @@ public class SqlBuilder {
     private static final String CREATE_DATABASE = "CREATE DATABASE IF NOT EXISTS";
     private static final String CREATE_TABLE = "CREATE TABLE IF NOT EXISTS";
     private static final String INSERT_RECORD = "INSERT INTO";
+    private static final String UPDATE_RECORD = "UPDATE ";
     private static final String CLOSE_PAREN = ")";
     private static final String OPEN_PAREN = "(";
     private static final String SPACE = " ";
     private static final String COMMA = ",";
+    private static final String SET = "SET";
     private static final String END = ";";
     private static SqlBuilderState status; 
     
@@ -41,7 +43,7 @@ public class SqlBuilder {
             cache = new SqlBuilder();
             SqlBuilder.insertInto(table, columns);
             
-        } else if (cache != null && status == SqlBuilderState.OPEN) {
+        } else if (cache != null && statusIS(SqlBuilderState.OPEN)) {
             query = new StringBuilder(INSERT_RECORD).append(SPACE);
             query.append(table).append(SPACE);
             query.append(inputColumns(columns));
@@ -49,6 +51,24 @@ public class SqlBuilder {
         
         } else if (statusIS(SqlBuilderState.OPEN)) {
             // Create a custom Runtime Exception class to handle illegal state exception
+            throw new RuntimeException("Illegal State Exception");
+        }
+        
+        return cache;
+    }
+    
+    public static SqlBuilder update(String table, String... columns) {
+        
+        if (cache == null) {
+            cache = new SqlBuilder();
+            SqlBuilder.update(table, columns);
+        
+        } else if (cache != null && statusIS(SqlBuilderState.OPEN)) {
+            query = new StringBuilder(UPDATE_RECORD).append(table);
+            query.append(SPACE + SET).append(SPACE);
+            query.append(inputSets(columns));
+            setStatus(SqlBuilderState.UPDATE);
+        } else if (statusIS(SqlBuilderState.OPEN)) {
             throw new RuntimeException("Illegal State Exception");
         }
         
@@ -70,7 +90,19 @@ public class SqlBuilder {
             setStatus(SqlBuilderState.VALUES);
             
         } else if (statusIS(SqlBuilderState.UPDATE)){
-            
+            int r = 0;
+            for (String value : values) {
+                while (r < query.length()) {
+                    if (query.charAt(r) == '?') {
+                        query.replace(r, r+1, "?&" + value);
+                        r++;
+                        break;
+                    }
+                    
+                    r++;
+                }
+            }
+            setStatus(SqlBuilderState.VALUES);
         }
         
         return cache;
@@ -80,8 +112,11 @@ public class SqlBuilder {
         if (!statusIS(SqlBuilderState.VALUES)) {
             throw new RuntimeException("Illegal State Exception. Incomplete Sql query construction detected");
         }
-
-        return query.append(END).toString();
+        String sql = query.append(END).toString();
+        setStatus(SqlBuilderState.OPEN);
+        query = new StringBuilder();
+        
+        return sql;
     }
     
     private static String inputColumns(String[] columns) {
@@ -91,6 +126,15 @@ public class SqlBuilder {
             c.append((comma++ == 0 ? SPACE : COMMA) + column);
         }
         c.append(SPACE).append(CLOSE_PAREN);
+        return c.toString();
+    }
+    
+    private static String inputSets(String[] columns) {
+        StringBuilder c = new StringBuilder();
+        int comma = 0;
+        for (String column : columns) {
+            c.append((comma++ == 0 ? "" : COMMA) + (column + "=?"));
+        }
         return c.toString();
     }
     
