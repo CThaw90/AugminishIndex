@@ -51,8 +51,9 @@ public class MySQLTest {
         if (!mysql.isConnected() || mysql.disconnect()) {}
     }
     
- // CREATE TABLE IndexerTests (id INT(11) NOT NULL AUTO_INCREMENT, testString VARCHAR(512) NOT NULL, PRIMARY KEY (id));
+ // CREATE TABLE IndexerTests (id INT(11) NOT NULL AUTO_INCREMENT, testString VARCHAR(512) NOT NULL, PRIMARY KEY (id)); //
     private static void createTestTable() {
-        mysql.create(SqlBuilder.createTable(StaticString.TEST_TABLE, "id INT(11) NOT NULL AUTO_INCREMENT", "testString VARCHAR(512) NOT NULL", "PRIMARY KEY (id)"));
+        mysql.create(SqlBuilder.createTable(StaticString.TEST_TABLE, 
+                "id INT(11) NOT NULL AUTO_INCREMENT", "testString VARCHAR(512) NOT NULL", "PRIMARY KEY (id)"));
     }
 }

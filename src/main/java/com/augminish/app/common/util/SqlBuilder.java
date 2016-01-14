@@ -1,17 +1,9 @@
 package com.augminish.app.common.util;
 
+import com.augminish.app.common.util.strings.StaticString;
+
 public class SqlBuilder {
     
-    private static final String CREATE_DATABASE = "CREATE DATABASE IF NOT EXISTS";
-    private static final String CREATE_TABLE = "CREATE TABLE IF NOT EXISTS";
-    private static final String INSERT_RECORD = "INSERT INTO";
-    private static final String UPDATE_RECORD = "UPDATE ";
-    private static final String CLOSE_PAREN = ")";
-    private static final String OPEN_PAREN = "(";
-    private static final String SPACE = " ";
-    private static final String COMMA = ",";
-    private static final String SET = "SET";
-    private static final String END = ";";
     private static SqlBuilderState status; 
     
     private static StringBuilder query;
@@ -22,30 +14,45 @@ public class SqlBuilder {
     }
     
     public static String createDatabase(String database) {
-        StringBuilder query = new StringBuilder(CREATE_DATABASE);
-        query.append(SPACE).append(database);
-        return query.append(END).toString();
+        StringBuilder query = new StringBuilder(StaticString.CREATE_DATABASE);
+        query.append(StaticString.SPACE).append(database);
+        return query.append(StaticString.SEMI_COLON).toString();
     }
     
     public static String createTable(String table, String... columns) {
-        StringBuilder query = new StringBuilder(CREATE_TABLE);
-        query.append(SPACE).append(table).append(SPACE);
+        StringBuilder query = new StringBuilder(StaticString.CREATE_TABLE);
+        query.append(StaticString.SPACE).append(table).append(StaticString.SPACE);
         query.append(inputColumns(columns));
-        query.append(END);
+        query.append(StaticString.SEMI_COLON);
         // TODO: Create Logger to display the resulting query that was created
         // Maybe implement an optional debug level option
         return query.toString();
     }
     
-    public static SqlBuilder insertInto(String table, String... columns) {
+    public static SqlBuilder select(String table, String... columns) {
         
         if (cache == null) {
             cache = new SqlBuilder();
-            SqlBuilder.insertInto(table, columns);
+            SqlBuilder.select(table, columns);
             
         } else if (cache != null && statusIS(SqlBuilderState.OPEN)) {
-            query = new StringBuilder(INSERT_RECORD).append(SPACE);
-            query.append(table).append(SPACE);
+            query = new StringBuilder(StaticString.SELECT).append(inputColumns(columns, true));
+            query.append(StaticString.FROM).append(StaticString.SPACE);
+            query.append(table);
+            setStatus(SqlBuilderState.SELECT);
+        }
+        return cache;
+    }
+    
+    public static SqlBuilder insert(String table, String... columns) {
+        
+        if (cache == null) {
+            cache = new SqlBuilder();
+            SqlBuilder.insert(table, columns);
+            
+        } else if (cache != null && statusIS(SqlBuilderState.OPEN)) {
+            query = new StringBuilder(StaticString.INSERT_RECORD).append(StaticString.SPACE);
+            query.append(table).append(StaticString.SPACE);
             query.append(inputColumns(columns));
             status = SqlBuilderState.INSERT;
         
@@ -64,8 +71,8 @@ public class SqlBuilder {
             SqlBuilder.update(table, columns);
         
         } else if (cache != null && statusIS(SqlBuilderState.OPEN)) {
-            query = new StringBuilder(UPDATE_RECORD).append(table);
-            query.append(SPACE + SET).append(SPACE);
+            query = new StringBuilder(StaticString.UPDATE_RECORD).append(table);
+            query.append(StaticString.SPACE + StaticString.SET).append(StaticString.SPACE);
             query.append(inputSets(columns));
             setStatus(SqlBuilderState.UPDATE);
         } else if (statusIS(SqlBuilderState.OPEN)) {
@@ -75,18 +82,19 @@ public class SqlBuilder {
         return cache;
     }
     
-    public SqlBuilder withValues(String... values) {
+    public SqlBuilder values(String... values) {
         
         if (statusIS(SqlBuilderState.OPEN)) {
             throw new RuntimeException("Invoked SqlBuilder.withValues method without calling SqlBuilder.insertInto or SqlBuilder.update");
         
         } else if (statusIS(SqlBuilderState.INSERT)) {
-            query.append(SPACE).append("VALUES").append(SPACE).append(OPEN_PAREN);
+            query.append(StaticString.SPACE).append(StaticString.VALUES);
+            query.append(StaticString.SPACE).append(StaticString.LEFT_PAREN);
             int comma = 0;
             for (String value : values) {
-                query.append((comma++ == 0 ? SPACE : COMMA) + "?&" + value);
+                query.append((comma++ == 0 ? StaticString.SPACE : StaticString.COMMA) + "?&" + value);
             }
-            query.append(SPACE).append(CLOSE_PAREN);
+            query.append(StaticString.SPACE).append(StaticString.RIGHT_PAREN);
             setStatus(SqlBuilderState.VALUES);
             
         } else if (statusIS(SqlBuilderState.UPDATE)){
@@ -108,24 +116,45 @@ public class SqlBuilder {
         return cache;
     }
     
+    public SqlBuilder where(String clause) {
+        
+        if (cache == null || statusIS(SqlBuilderState.OPEN)) {
+            throw new RuntimeException("Illegal State Exception");
+        
+        } else if (statusIS(SqlBuilderState.VALUES) || statusIS(SqlBuilderState.SELECT)) {
+            query.append(StaticString.SPACE).append(StaticString.WHERE);
+            query.append(StaticString.SPACE).append(clause);
+        }
+        return cache;
+    }
+    
     public String commit() {
-        if (!statusIS(SqlBuilderState.VALUES)) {
+        if (!statusIS(SqlBuilderState.VALUES) && !statusIS(SqlBuilderState.SELECT)) {
+            reset(); // Make this call from a Custom ExceptionHandler
             throw new RuntimeException("Illegal State Exception. Incomplete Sql query construction detected");
         }
-        String sql = query.append(END).toString();
+        String sql = query.append(StaticString.SEMI_COLON).toString();
         setStatus(SqlBuilderState.OPEN);
         query = new StringBuilder();
         
         return sql;
     }
     
+    public static void reset() {
+        cache = null;
+    }
+    
     private static String inputColumns(String[] columns) {
-        StringBuilder c = new StringBuilder(OPEN_PAREN);
+        return inputColumns(columns, false);
+    }
+    
+    private static String inputColumns(String[] columns, boolean withoutParen) {
+        StringBuilder c = new StringBuilder(withoutParen ? StaticString.EMPTY : StaticString.LEFT_PAREN);
         int comma = 0;
         for (String column : columns) {
-            c.append((comma++ == 0 ? SPACE : COMMA) + column);
+            c.append((comma++ == 0 ? StaticString.SPACE : StaticString.COMMA) + column);
         }
-        c.append(SPACE).append(CLOSE_PAREN);
+        c.append(StaticString.SPACE).append(withoutParen ? StaticString.EMPTY : StaticString.RIGHT_PAREN);
         return c.toString();
     }
     
@@ -133,7 +162,7 @@ public class SqlBuilder {
         StringBuilder c = new StringBuilder();
         int comma = 0;
         for (String column : columns) {
-            c.append((comma++ == 0 ? "" : COMMA) + (column + "=?"));
+            c.append((comma++ == 0 ? "" : StaticString.COMMA) + (column + "=?"));
         }
         return c.toString();
     }
@@ -146,7 +175,7 @@ public class SqlBuilder {
         status = s;
     }
     
-    protected SqlBuilder returnCache() {
+    protected static SqlBuilder getCache() {
         return cache;
     }
     
