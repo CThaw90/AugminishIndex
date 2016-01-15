@@ -1,4 +1,4 @@
-package com.augminish.app.common.util;
+package com.augminish.app.common.util.mysql.helper;
 
 import com.augminish.app.common.util.strings.StaticString;
 
@@ -10,7 +10,7 @@ public class SqlBuilderTest {
     @Test
     public void createDatabaseTest() {
         Assert.assertEquals(StaticString.CREATE_DATABASE_TEST_ASSERT_DESCRIPTION, 
-                StaticString.CREATE_DATABASE_VALUE, SqlBuilder.createDatabase(StaticString.DATABASE_NAME));
+                StaticString.CREATE_DATABASE_VALUE, SqlBuilder.createDatabase(StaticString.DATABASE_NAME).commit());
     }
     
     @Test
@@ -19,7 +19,7 @@ public class SqlBuilderTest {
                 StaticString.CREATE_TABLE_VALUE, SqlBuilder.createTable(StaticString.TABLE_NAME, 
                         "id INT(11) NOT NULL AUTO_INCREMENT",
                         "testString VARCHAR(512) NOT NULL",
-                        "PRIMARY KEY (id)"));
+                        "PRIMARY KEY (id)").commit());
     }
     
     @Test(expected = RuntimeException.class)

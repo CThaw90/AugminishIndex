@@ -1,4 +1,4 @@
-package com.augminish.app.common.util;
+package com.augminish.app.common.util.mysql.helper;
 
 import com.augminish.app.common.util.strings.StaticString;
 
@@ -13,20 +13,39 @@ public class SqlBuilder {
         setStatus(SqlBuilderState.OPEN);
     }
     
-    public static String createDatabase(String database) {
-        StringBuilder query = new StringBuilder(StaticString.CREATE_DATABASE);
-        query.append(StaticString.SPACE).append(database);
-        return query.append(StaticString.SEMI_COLON).toString();
+    public static SqlBuilder createDatabase(String database) {
+        
+        if (cache == null) {
+            cache = new SqlBuilder();
+            SqlBuilder.createDatabase(database);
+        
+        } else if (cache != null && statusIS(SqlBuilderState.OPEN)) {
+            query = new StringBuilder(StaticString.CREATE_DATABASE);
+            query.append(StaticString.SPACE).append(database);
+            setStatus(SqlBuilderState.CREATE);
+        } else {
+            throw new RuntimeException("Illegal State Exception");
+        }
+        
+        return cache;
     }
     
-    public static String createTable(String table, String... columns) {
-        StringBuilder query = new StringBuilder(StaticString.CREATE_TABLE);
-        query.append(StaticString.SPACE).append(table).append(StaticString.SPACE);
-        query.append(inputColumns(columns));
-        query.append(StaticString.SEMI_COLON);
-        // TODO: Create Logger to display the resulting query that was created
-        // Maybe implement an optional debug level option
-        return query.toString();
+    public static SqlBuilder createTable(String table, String... columns) {
+        
+        if (cache == null) {
+            cache = new SqlBuilder();
+            SqlBuilder.createTable(table, columns);
+            
+        } else if (cache != null && statusIS(SqlBuilderState.OPEN)) {
+            query = new StringBuilder(StaticString.CREATE_TABLE);
+            query.append(StaticString.SPACE).append(table).append(StaticString.SPACE);
+            query.append(inputColumns(columns));
+            setStatus(SqlBuilderState.CREATE);
+        } else {
+            throw new RuntimeException("Illegal State Exception");
+        }
+        
+        return cache;
     }
     
     public static SqlBuilder select(String table, String... columns) {
@@ -59,6 +78,8 @@ public class SqlBuilder {
         } else if (statusIS(SqlBuilderState.OPEN)) {
             // Create a custom Runtime Exception class to handle illegal state exception
             throw new RuntimeException("Illegal State Exception");
+        } else {
+            throw new RuntimeException("Illegal State Exception");
         }
         
         return cache;
@@ -75,6 +96,7 @@ public class SqlBuilder {
             query.append(StaticString.SPACE + StaticString.SET).append(StaticString.SPACE);
             query.append(inputSets(columns));
             setStatus(SqlBuilderState.UPDATE);
+            
         } else if (statusIS(SqlBuilderState.OPEN)) {
             throw new RuntimeException("Illegal State Exception");
         }
@@ -129,7 +151,7 @@ public class SqlBuilder {
     }
     
     public String commit() {
-        if (!statusIS(SqlBuilderState.VALUES) && !statusIS(SqlBuilderState.SELECT)) {
+        if (!statusIS(SqlBuilderState.VALUES) && !statusIS(SqlBuilderState.SELECT) && !statusIS(SqlBuilderState.CREATE)) {
             reset(); // Make this call from a Custom ExceptionHandler
             throw new RuntimeException("Illegal State Exception. Incomplete Sql query construction detected");
         }
@@ -182,6 +204,7 @@ public class SqlBuilder {
     protected enum SqlBuilderState {
         
         OPEN ,
+        CREATE ,
         SELECT , 
         INSERT , 
         UPDATE , 

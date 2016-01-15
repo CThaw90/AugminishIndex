@@ -3,7 +3,7 @@ package com.augminish.app.common.util.mysql;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.augminish.app.common.util.SqlBuilder;
+import com.augminish.app.common.util.mysql.helper.SqlBuilder;
 import com.augminish.app.common.util.strings.StaticString;
 
 import org.junit.Assert;
@@ -34,7 +34,8 @@ public class MySQLTest {
         
         Assert.assertFalse(StaticString.MYSQL_CREATE_TEST_INVALID_QUERY_ASSERT_DESCRIPTION, mysql.create(StaticString.CREATE_ERROR));
         Assert.assertFalse(StaticString.MYSQL_CREATE_TEST_INVALID_QUERY_ASSERT_DESCRIPTION, mysql.create(StaticString.CREATE_ERROR_X));
-        Assert.assertTrue(StaticString.MYSQL_CREATE_TEST_CREATE_DB_ASSERT_DESCRIPTION, mysql.create(SqlBuilder.createDatabase(StaticString.TEST_DB)));
+        Assert.assertTrue(StaticString.MYSQL_CREATE_TEST_CREATE_DB_ASSERT_DESCRIPTION, 
+                mysql.create(SqlBuilder.createDatabase(StaticString.TEST_DB).commit()));
     }
     
     @Test
@@ -54,6 +55,6 @@ public class MySQLTest {
  // CREATE TABLE IndexerTests (id INT(11) NOT NULL AUTO_INCREMENT, testString VARCHAR(512) NOT NULL, PRIMARY KEY (id)); //
     private static void createTestTable() {
         mysql.create(SqlBuilder.createTable(StaticString.TEST_TABLE, 
-                "id INT(11) NOT NULL AUTO_INCREMENT", "testString VARCHAR(512) NOT NULL", "PRIMARY KEY (id)"));
+                "id INT(11) NOT NULL AUTO_INCREMENT", "testString VARCHAR(512) NOT NULL", "PRIMARY KEY (id)").commit());
     }
 }
