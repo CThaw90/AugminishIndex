@@ -57,6 +57,7 @@ public class MySQL {
             catch (SQLException sql) {
 
                 // TODO: Maybe put some logging info about the failed connection
+                sql.printStackTrace();
             }
         }
 
@@ -178,6 +179,7 @@ public class MySQL {
             }
             catch (SQLException sql) {
                 // TODO: Try and get this statement to catch SQLExceptions
+                sql.printStackTrace();
             }
         }
 

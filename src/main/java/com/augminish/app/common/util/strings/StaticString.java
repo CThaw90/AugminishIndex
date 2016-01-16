@@ -9,7 +9,6 @@ public class StaticString {
     public static final String INSERT_RECORD = "INSERT INTO";
     public static final String UPDATE_RECORD = "UPDATE ";
     
-
     /* SqlBuilderTest Static String variables */
     public static final String CREATE_DATABASE_VALUE = "CREATE DATABASE IF NOT EXISTS TestingDatabase;";
     public static final String CREATE_TABLE_VALUE = "CREATE TABLE IF NOT EXISTS TestingTable ( " + 
@@ -22,6 +21,7 @@ public class StaticString {
     public static final String INSERT_INTO_TABLE = "INSERT INTO TestingTable ( id,testString )" + " VALUES ( '12345','RANDOMLY_INSERTED_STRING' );";
     public static final String UPDATE_TABLE_WHERE = "UPDATE TestingTable SET id='12345',testString='RANDOMLY_UPDATED_STRING' WHERE id=12345 AND testString=" + 
                                                     "'RANDOMLY_UPDATED_STRING';";
+    public static final String UPDATE_TABLE_ESCAPED = "UPDATE TestingTable SET id='12345',testString='ESCAPED=\\'RANDOMLY_UPDATED_STRING\\'';";
     public static final String UPDATE_TABLE = "UPDATE TestingTable SET id='12345',testString='RANDOMLY_UPDATED_STRING';";
     public static final String DATABASE_NAME = "TestingDatabase";
     public static final String TABLE_NAME = "TestingTable";
@@ -33,6 +33,7 @@ public class StaticString {
     public static final String INSERT_INTO_WITH_VALUES_TEST_ASSERT_DESCRIPTION = "SqlBuilder should return a valid Insert query with values";
     public static final String UPDATE_WITH_VALUES_TEST = "SqlBuilder should return a valid update query with values";
     public static final String UPDATE_WITH_VALUES_WHERE_TEST_ASSERT_DESCRIPTION = "SqlBuilder should return a valid update query with values and where clause";
+    public static final String UPDATE_WITH_VALUES_ESCAPED_ASSERT_DESCRIPTION = "SqlBuilder should return a valid update query with escaped values";
     public static final String RESET_TEST_NOT_NULL_ASSERT_DESCRIPTION = "The SqlBuilder cache should not be null";
     public static final String RESET_TEST_NULL_ASSERT_DESCRIPTION = "The SqlBuilder cache should be set to null";
     public static final String SELECT_FROM_TEST_WHERE_ASSERT_DESCRIPTION = "The SqlBuilder should return select query string with valid where clause";
@@ -54,6 +55,10 @@ public class StaticString {
     public static final String MYSQL_CREATE_TEST_INVALID_QUERY_ASSERT_DESCRIPTION = "MySQL should return false passing in a non creating query";
     public static final String MYSQL_CREATE_TEST_CREATE_DB_ASSERT_DESCRIPTION = "MySQL should return true creating a database called AugminishTests";
     public static final String MYSQL_CREATE_TEST_CREATE_TABLE_ASSERT_DESCRIPTION = "MySQL should return true create a table in AugminishTests";
+    public static final String MYSQL_SELECT_TEST_MATCH_ASSERT_DESCRIPTION = "MySQL should return a hashed data object with a matching test string";
+    public static final String MYSQL_SELECT_TEST_ASSERT_DESCRIPTION = "MySQL should return one hashed data object in a list";
+    
+    
 
     /* Static String Common Symbols */
     public static final String RIGHT_PAREN = ")";

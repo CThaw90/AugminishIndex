@@ -176,7 +176,7 @@ public class SqlBuilder {
     }
 
     public static String escape(String value) {
-        return "'" + value.replaceAll("'", "\\'") + "'";
+        return "'" + value.replaceAll("\\'", "\\\\'") + "'";
     }
 
     public static void reset() {

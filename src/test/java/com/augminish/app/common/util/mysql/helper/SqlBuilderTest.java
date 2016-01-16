@@ -59,6 +59,13 @@ public class SqlBuilderTest {
     }
     
     @Test
+    public void updateWithValuesEscaped() {
+        Assert.assertEquals(StaticString.UPDATE_WITH_VALUES_ESCAPED_ASSERT_DESCRIPTION,
+                StaticString.UPDATE_TABLE_ESCAPED,
+                SqlBuilder.update(StaticString.TABLE_NAME, "id", "testString").values("12345", "ESCAPED='RANDOMLY_UPDATED_STRING'").commit());
+    }
+    
+    @Test
     public void selectFromTest() {
         Assert.assertEquals(StaticString.SELECT_FROM_TEST_ASSERT_DESCRIPTION, 
                 StaticString.SELECT_FROM_TABLE, 

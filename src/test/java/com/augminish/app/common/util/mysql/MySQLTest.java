@@ -7,6 +7,10 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.math.BigInteger;
+import java.util.HashMap;
+import java.util.List;
+
 public class MySQLTest {
 
     private static MySQL mysql;
@@ -41,8 +45,38 @@ public class MySQLTest {
 
     @Test
     public void mysqlSelectTest() {
+        String seed = generateSeed(System.currentTimeMillis());
+        
         makeSureMySQLisConnected();
-        createTestTable();
+        makeSureMySQLTestDatabaseExists();
+        Assert.assertTrue(mysql.use(StaticString.TEST_DB));
+        Assert.assertTrue(makeSureMySQLTestTableExists());
+        Assert.assertTrue(makeSureMySQLTestRowExists(seed));
+        
+        List<HashMap<String, Object>> result = mysql.select(SqlBuilder.select(StaticString.TEST_TABLE, "id", "testString").where("testString='"+seed+"'").commit());
+        Assert.assertEquals(StaticString.MYSQL_SELECT_TEST_MATCH_ASSERT_DESCRIPTION, seed, result.get(0).get("testString"));
+        Assert.assertFalse(StaticString.MYSQL_SELECT_TEST_ASSERT_DESCRIPTION, result.isEmpty());
+    }
+    
+    @Test
+    public void mysqlUpdateTest() {
+        
+        String seed = generateSeed(System.currentTimeMillis()), previous = null;
+        
+        makeSureMySQLisConnected();
+        makeSureMySQLTestDatabaseExists();
+        Assert.assertTrue(mysql.use(StaticString.TEST_DB));
+        Assert.assertTrue(makeSureMySQLTestTableExists());
+        Assert.assertTrue(makeSureMySQLTestRowExists(seed));
+        
+        List<HashMap<String, Object>> result = mysql.select(SqlBuilder.select(StaticString.TEST_TABLE, "id", "testString").commit());
+        previous = result.get(result.size() - 1).get("testString").toString();
+        
+        Assert.assertTrue(mysql.update(SqlBuilder.update(StaticString.TEST_TABLE, "testString").values(seed).where("testString='"+previous+"'").commit()));
+        result = mysql.select(SqlBuilder.select(StaticString.TEST_TABLE, "id", "testString").where("testString='"+seed+"'").commit());
+        
+        Assert.assertFalse("MySQL updated row should exist", result.isEmpty());
+        
     }
 
     private static void makeSureMySQLisConnected() {
@@ -58,9 +92,20 @@ public class MySQLTest {
         if (!mysql.isConnected() || mysql.disconnect()) {
         }
     }
+    
+    private static boolean makeSureMySQLTestDatabaseExists() {
+        return mysql.create(SqlBuilder.createDatabase(StaticString.TEST_DB).commit());
+    }
 
-    // CREATE TABLE IndexerTests (id INT(11) NOT NULL AUTO_INCREMENT, testString VARCHAR(512) NOT NULL, PRIMARY KEY (id)); //
-    private static void createTestTable() {
-        mysql.create(SqlBuilder.createTable(StaticString.TEST_TABLE, "id INT(11) NOT NULL AUTO_INCREMENT", "testString VARCHAR(512) NOT NULL", "PRIMARY KEY (id)").commit());
+    private static boolean makeSureMySQLTestTableExists() {
+        return mysql.create(SqlBuilder.createTable(StaticString.TEST_TABLE, "id INT(11) NOT NULL AUTO_INCREMENT", "testString VARCHAR(512) NOT NULL", "PRIMARY KEY (id)").commit());
+    }
+    
+    private static boolean makeSureMySQLTestRowExists(String s) {
+        return mysql.insert(SqlBuilder.insert(StaticString.TEST_TABLE, "testString").values(s).commit());
+    }
+    
+    private static String generateSeed(long timeInMillis) {
+        return new BigInteger(String.valueOf(timeInMillis)).toString(32);
     }
 }
