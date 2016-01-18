@@ -58,7 +58,10 @@ public class StaticString {
     public static final String MYSQL_SELECT_TEST_MATCH_ASSERT_DESCRIPTION = "MySQL should return a hashed data object with a matching test string";
     public static final String MYSQL_SELECT_TEST_ASSERT_DESCRIPTION = "MySQL should return one hashed data object in a list";
     
-    
+    /* FileHandlerTest Static variables */
+    public static final String FILE_HANDLER_TEST_CONTENT = "<!DOCTYPE><html><head><title>File Contents</title></head><body>File save testing</body></html>";
+    public static final String FILE_HANDLER_TEST_FILE_PATH = "./.ignore/data/www.augminishtest.com/testing_file.html";
+    public static final String FILE_HANDLER_TEST_FAKE_PATH = "./ignore/data/www.augminishtest.com/testing_file.html";
 
     /* Static String Common Symbols */
     public static final String RIGHT_PAREN = ")";

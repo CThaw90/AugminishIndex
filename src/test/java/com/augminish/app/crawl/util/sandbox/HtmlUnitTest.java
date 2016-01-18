@@ -1,4 +1,4 @@
-package com.augminish.app.crawl;
+package com.augminish.app.crawl.util.sandbox;
 
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import com.gargoylesoftware.htmlunit.WebClient;

@@ -15,7 +15,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
-public class Crawler {
+public class Crawler extends Thread {
 
     private HashMap<String, String> visited;
     private Queue<String> queue;
@@ -27,24 +27,24 @@ public class Crawler {
 
     private Document document;
 
-    public Crawler(String seed) throws IOException {
-
-        webclient = new WebClient(com.gargoylesoftware.htmlunit.BrowserVersion.FIREFOX_38);
-        queue = new LinkedList<String>();
-        queue.add(seed);
-
-        filehandler = new FileHandler();
-    }
-
     public Crawler(List<String> seeds) {
 
         webclient = new WebClient(com.gargoylesoftware.htmlunit.BrowserVersion.FIREFOX_38);
         queue = new LinkedList<String>(seeds);
         filehandler = new FileHandler();
     }
-
-    public Crawler() {
-
+    
+    protected Crawler() {
+        
+    }
+    
+    @Override
+    public void run() {
+        try {
+            crawl();
+        } catch (IOException ie) {
+            // TODO: [LOGGER] Log that crawler has thrown an IOException
+        }
     }
 
     public void crawl() throws FailingHttpStatusCodeException, MalformedURLException, IOException {
@@ -63,6 +63,14 @@ public class Crawler {
         }
     }
 
+    protected String verifyHash(String url) {
+        return url;
+    }
+
+    protected String getDomainFrom(String url) {
+        return url.replaceAll("http(s)?://", "").replaceAll("/.*", "");
+    }
+    
     private void saveToFile(String domain, String url, String content) throws IOException {
         String hashedUrl = org.apache.commons.codec.binary.Base64.encodeBase64String(url.getBytes()).substring(0, 7);
         if (filehandler.save(domain + "/" + hashedUrl, content)) {
@@ -71,13 +79,5 @@ public class Crawler {
         else {
             throw new IOException("Could not save file");
         }
-    }
-
-    protected String verifyHash(String url) {
-        return url;
-    }
-
-    protected String getDomainFrom(String url) {
-        return url.replaceAll("http(s)?://", "").replaceAll("/.*", "");
     }
 }

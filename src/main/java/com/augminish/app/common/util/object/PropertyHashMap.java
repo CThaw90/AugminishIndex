@@ -43,4 +43,8 @@ public class PropertyHashMap {
     public String get(String key) {
         return hashMap.get(key);
     }
+    
+    public String[] getSeedAsArray() {
+        return hashMap.containsKey("seed") ? hashMap.get("seed").split(",") : null;
+    }
 }
