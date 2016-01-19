@@ -10,13 +10,13 @@ import java.util.Properties;
 public class PropertyHashMap {
 
     private static HashMap<String, String> hashMap;
-    private static Properties properties;
     private static InputStream inputStream;
+    private static Properties properties;
 
     public PropertyHashMap() throws IOException {
 
         if (hashMap == null) {
-            
+
             inputStream = new FileInputStream("./.ignore/config.properties");
             properties = new Properties();
             properties.load(inputStream);
@@ -43,7 +43,7 @@ public class PropertyHashMap {
     public String get(String key) {
         return hashMap.get(key);
     }
-    
+
     public String[] getSeedAsArray() {
         return hashMap.containsKey("seed") ? hashMap.get("seed").split(",") : null;
     }

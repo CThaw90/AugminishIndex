@@ -33,21 +33,35 @@ public class Crawler extends Thread {
         queue = new LinkedList<String>(seeds);
         filehandler = new FileHandler();
     }
-    
+
     protected Crawler() {
-        
+
     }
-    
+
     @Override
     public void run() {
         try {
             crawl();
-        } catch (IOException ie) {
+
+        }
+        catch (FailingHttpStatusCodeException fhse) {
+            // TODO: Store Http Status Code Exception for human investigation
+        }
+        catch (MalformedURLException mue) {
+            // TODO: Store a malformed Url for human investigation
+        }
+        catch (IOException ie) {
             // TODO: [LOGGER] Log that crawler has thrown an IOException
+        }
+        catch (RuntimeException re) {
+            // TODO: [LOGGER] Log any unforeseen RuntimeException thrown by the crawler
+        }
+        catch (Exception e) {
+            // TODO: [LOGGER] Log all missed Exceptions that were thrown by the crawler
         }
     }
 
-    public void crawl() throws FailingHttpStatusCodeException, MalformedURLException, IOException {
+    protected void crawl() throws FailingHttpStatusCodeException, MalformedURLException, IOException {
 
         String url, domain, content;
         while (!queue.isEmpty()) {
@@ -61,6 +75,8 @@ public class Crawler extends Thread {
             // TODO: Place this logic in another thread for efficiency
             document = Jsoup.parse(content);
         }
+
+        // TODO: [LOGGER] Publicly log Crawler has run out of queues
     }
 
     protected String verifyHash(String url) {
@@ -70,7 +86,7 @@ public class Crawler extends Thread {
     protected String getDomainFrom(String url) {
         return url.replaceAll("http(s)?://", "").replaceAll("/.*", "");
     }
-    
+
     private void saveToFile(String domain, String url, String content) throws IOException {
         String hashedUrl = org.apache.commons.codec.binary.Base64.encodeBase64String(url.getBytes()).substring(0, 7);
         if (filehandler.save(domain + "/" + hashedUrl, content)) {
