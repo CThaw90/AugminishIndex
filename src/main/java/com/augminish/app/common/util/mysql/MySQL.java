@@ -224,11 +224,11 @@ public class MySQL {
     private void loadConfig() {
         try {
             propertyHashMap = new PropertyHashMap();
-            port = Integer.parseInt(propertyHashMap.get("port"));
-            hostname = propertyHashMap.get("hostname");
-            username = propertyHashMap.get("username");
-            password = propertyHashMap.get("password");
-            database = propertyHashMap.get("database");
+            port = Integer.parseInt(propertyHashMap.get("mysql.port"));
+            hostname = propertyHashMap.get("mysql.hostname");
+            username = propertyHashMap.get("mysql.username");
+            password = propertyHashMap.get("mysql.password");
+            database = propertyHashMap.get("mysql.database");
         }
         catch (IOException ie) {
             ie.printStackTrace();

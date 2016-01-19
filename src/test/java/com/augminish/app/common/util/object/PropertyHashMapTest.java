@@ -12,6 +12,7 @@ import java.util.List;
 public class PropertyHashMapTest {
     private static final String[] seedTest = { "https://newyork.craigslist.org/search/muc", "https://newjersey.craigslist.org/search/muc", "https://pittsburgh.craigslist.org/search/muc" };
     private static PropertyHashMap propertyHashMap;
+    private static final boolean TEST = Boolean.TRUE;
 
     @BeforeClass
     public static void init() throws IOException {
@@ -25,8 +26,8 @@ public class PropertyHashMapTest {
         seeds.add(seedTest[1]);
         seeds.add(seedTest[2]);
 
-        Assert.assertArrayEquals("PropertyHashMap should return values split into matching array", seedTest, propertyHashMap.getSeedAsArray());
-        Assert.assertEquals("PropertyHashMap should return values split into matching list", seeds, Arrays.asList(propertyHashMap.getSeedAsArray()));
+        Assert.assertArrayEquals("PropertyHashMap should return values split into matching array", seedTest, propertyHashMap.getSeedAsArray(TEST));
+        Assert.assertEquals("PropertyHashMap should return values split into matching list", seeds, Arrays.asList(propertyHashMap.getSeedAsArray(TEST)));
 
     }
 }

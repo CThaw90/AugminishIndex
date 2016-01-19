@@ -71,7 +71,7 @@ public class Crawler extends Thread {
             content = response.getContentAsString();
             domain = getDomainFrom(url);
 
-            saveToFile(domain, url, content);
+            saveToFile(domain, verifyHash(url), content);
             // TODO: Place this logic in another thread for efficiency
             document = Jsoup.parse(content);
         }
