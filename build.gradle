@@ -20,3 +20,23 @@ dependencies {
 			'net.sourceforge.htmlunit:htmlunit:2.19',
 			'org.jsoup:jsoup:1.7.2'	
 }
+
+task build.doLast {
+	tasks.initCache.execute();
+}
+
+task initCache << {
+	description = 'Creates ./.ignore/cache folder if it does not exist'
+	
+	def cacheDir = new File('.ignore/cache')
+	cacheDir.mkdirs()
+}
+
+task cleanCache (type: Delete) {
+	description 'Deletes the ./.ignore/cache folder if it exists'
+	
+	delete(new File('.ignore/cache'))
+	doLast {
+		println 'Cache directory removed'
+	}
+}
