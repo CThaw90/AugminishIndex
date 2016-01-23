@@ -4,12 +4,15 @@ import com.augminish.app.common.util.file.FileHandler;
 import com.augminish.app.common.util.mysql.MySQL;
 import com.augminish.app.common.util.mysql.helper.SqlBuilder;
 import com.augminish.app.common.util.object.PropertyHashMap;
+
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.WebResponse;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -42,7 +45,6 @@ public class Crawler extends Thread {
         queue = new LinkedList<String>(seeds);
         filehandler = new FileHandler();
         mysql = new MySQL();
-
     }
 
     /*** Constructor used for JUnit testing purposes ***/
@@ -55,12 +57,7 @@ public class Crawler extends Thread {
         try {
             crawl();
         }
-        catch (FailingHttpStatusCodeException fhse) {
-            // TODO: Store Http Status Code Exception for human investigation
-        }
-        catch (MalformedURLException mue) {
-            // TODO: Store a malformed Url for human investigation
-        }
+
         catch (IOException ie) {
             // TODO: [LOGGER] Log that crawler has thrown an IOException
         }
@@ -72,27 +69,64 @@ public class Crawler extends Thread {
         }
     }
 
-    protected void crawl() throws FailingHttpStatusCodeException, MalformedURLException, IOException {
+    protected void crawl() throws IOException {
 
         propertyHashMap = new PropertyHashMap();
 
-        String url, domain, content;
+        String url, path, domain, content;
         loadOutdatedWebSites();
         loadVisitedWebSites();
 
         while (!queue.isEmpty()) {
-
-            response = webclient.getPage(queue.poll()).getWebResponse();
-            url = response.getWebRequest().getUrl().toExternalForm();
-            content = response.getContentAsString();
-            domain = getDomainFrom(url);
-
-            save(domain, url, content);
-            // TODO: Place this logic in another thread for efficiency
-            document = Jsoup.parse(content);
+            try {
+                response = webclient.getPage(queue.poll()).getWebResponse();
+                url = response.getWebRequest().getUrl().toExternalForm();
+                content = response.getContentAsString();
+                domain = getDomainFrom(url);
+                path = getUrlPathFrom(url);
+    
+                if (save(getProtocolFrom(url), domain, path, content)) {
+                    // TODO: Place this logic in another thread for efficiency
+                    document = Jsoup.parse(stripHtmlCodes(content));
+                    queue(url);
+                }
+                
+            }
+            catch (FailingHttpStatusCodeException fhse) {
+                // TODO: Store Http Status Code Exception for human investigation
+            }
+            catch (MalformedURLException mue) {
+                // TODO: Store a malformed Url for human investigation
+            }
         }
 
         // TODO: [LOGGER] Publicly log Crawler has run out of queues
+    }
+    
+    private void queue(String url) {
+        
+        Elements attributes = document.child(0).select("a");
+        for (Element href : attributes) {
+            if (href.hasAttr("href") && !href.attr("href").replaceAll("[\\s]+", "").isEmpty()) {
+                queue.add(buildFullUrl(url, href.attr("attr")));
+            }
+        }
+    }
+    
+    protected static String buildFullUrl(String parent, String child) {
+        
+        StringBuilder url = new StringBuilder();
+        
+        if (!child.matches("http(s)?://.*")) {
+            url.append(parent.replaceAll("//.*", ""));
+            url.append("//" + getDomainFrom(parent));
+            if (!child.startsWith("/")) {
+                url.append(getUrlPathFrom(parent));
+            }
+        }
+                
+        url.append(child);
+        return url.toString();
     }
 
     protected String uniqueHash(String hash) {
@@ -111,23 +145,26 @@ public class Crawler extends Thread {
 
         return unique ? hash.substring(start + offset, end + offset) : null;
     }
+    
+    protected static int getProtocolFrom(String url) {
+        return url.startsWith("https") ? 1 : 0;
+    }
 
-    protected String getDomainFrom(String url) {
+    protected static String getDomainFrom(String url) {
         return url.replaceAll("http(s)?://", "").replaceAll("/.*", "");
     }
 
-    protected String getURIComponentFrom(String url) {
-        return null;
+    protected static String getUrlPathFrom(String url) {
+        return url.replaceAll("http(s)?://[\\w]+\\.(.*?)(?=/)", "");
     }
 
-    private void save(String domain, String url, String content) throws IOException {
+    private boolean save(int secure, String domain, String url, String content) throws IOException {
         String hashedUrl = uniqueHash(org.apache.commons.codec.binary.Base64.encodeBase64String(url.getBytes()));
-        if (filehandler.save(domain + "/" + hashedUrl, content)) {
-
+        boolean saved = filehandler.save(domain, hashedUrl, content);
+        if (saved) {
+        //    mysql.insert(SqlBuilder.insert("domain", "url", "" columns))
         }
-        else {
-            throw new IOException("Could not save file");
-        }
+        return saved;
     }
 
     private void loadVisitedWebSites() {
@@ -164,6 +201,10 @@ public class Crawler extends Thread {
         else {
             // TODO: Create a recovery algorithm for a failed MySQL connection
         }
+    }
+    
+    protected static String stripHtmlCodes (String content) {
+        return content.replaceAll("&(.*?);", " ");
     }
 
     protected static String buildFullUrl(HashMap<String, Object> webSiteRow) {

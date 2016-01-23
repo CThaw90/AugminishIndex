@@ -6,6 +6,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 
 public class FileHandler {
+    
+    private static final String FS = "/";
 
     private BufferedWriter bufferedWriter;
     private FileWriter fileWriter;
@@ -14,16 +16,17 @@ public class FileHandler {
     public FileHandler() {
     }
 
-    public boolean save(String path, String content) throws IOException {
+    public boolean save(String path, String fileName, String content) throws IOException {
 
         boolean saved = true;
 
         file = new File(path);
         if (!file.exists()) {
-            saved = file.createNewFile();
+            saved = file.mkdirs();
         }
 
         if (saved) {
+            file = new File(path + FS + fileName);
             fileWriter = new FileWriter(file);
             bufferedWriter = new BufferedWriter(fileWriter);
 
