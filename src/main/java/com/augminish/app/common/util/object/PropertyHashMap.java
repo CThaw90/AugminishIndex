@@ -47,6 +47,10 @@ public class PropertyHashMap {
     public String[] getSeedAsArray() {
         return hashMap.containsKey("crawler.seed") ? hashMap.get("crawler.seed").split(",") : null;
     }
+    
+    public String[] getIgnoredAsArray() {
+        return hashMap.containsKey("crawler.ignore") ? hashMap.get("crawler.ignore").split(",") : null;
+    }
 
     protected String[] getSeedAsArray(boolean test) {
         return hashMap.containsKey("crawler.seedTest") ? hashMap.get("crawler.seedTest").split(",") : null;

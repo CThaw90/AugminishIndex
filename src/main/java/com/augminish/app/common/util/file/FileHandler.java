@@ -8,7 +8,7 @@ import java.io.IOException;
 public class FileHandler {
     
     private static final String FS = "/";
-
+    
     private BufferedWriter bufferedWriter;
     private FileWriter fileWriter;
     private File file;

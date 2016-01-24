@@ -6,6 +6,7 @@ import com.augminish.app.index.Indexer;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 
 public class Main {
 
@@ -22,11 +23,16 @@ public class Main {
     }
 
     private void start() throws IOException {
-
-        crawler = new Thread(new Crawler(Arrays.asList(propertyHashMap.getSeedAsArray())), "com.augminish.app.crawl.Crawler");
+        
+        Runtime.getRuntime().addShutdownHook(new Thread(new CleanUpModule()));
+        List<String> seed = Arrays.asList(propertyHashMap.getSeedAsArray()), 
+                   ignore = Arrays.asList(propertyHashMap.getIgnoredAsArray());
+        
+        
+        crawler = new Thread(new Crawler(seed, ignore), "com.augminish.app.crawl.Crawler");
         crawler.start();
 
-        indexer = new Thread(new Indexer(propertyHashMap.get("data.location")), "com.augminish.app.index.Indexer");
+        indexer = new Thread(new Indexer(propertyHashMap.get("file.cache")), "com.augminish.app.index.Indexer");
         indexer.start();
 
         try {
@@ -36,6 +42,13 @@ public class Main {
         catch (InterruptedException ie) {
             // TODO: Log an interrupted exception happened
             ie.printStackTrace();
+        }
+    }
+    
+    private class CleanUpModule implements Runnable {
+        
+        public void run() {
+            System.out.println("Augminish Indexer stopped");
         }
     }
 }

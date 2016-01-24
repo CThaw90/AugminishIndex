@@ -1,19 +1,28 @@
 package com.augminish.app.crawl;
 
+import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
+import com.gargoylesoftware.htmlunit.WebClient;
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.io.IOException;
+import java.net.MalformedURLException;
 import java.util.HashMap;
 
 public class CrawlerTest {
 
     private static Crawler crawler;
+    private static WebClient wc;
 
     @BeforeClass
     public static void initialize() {
-
+        
         crawler = new Crawler();
+        wc = new WebClient();
     }
     
     @Test
@@ -37,15 +46,12 @@ public class CrawlerTest {
 
     @Test
     public void uniqueHashTest() {
-        String[] hashPermutation = { "1234567", "2345678", "3456789", "4567890", "12345678", "23456789", "34567890", "123456789", "234567890", "1234567890" };
-        String hash = "1234567890";
-
-        for (String uniqueHash : hashPermutation) {
-            Assert.assertEquals("Crawler unique hashing algorithm should match as expected", uniqueHash, crawler.uniqueHash(hash));
-            crawler.addVisitedUrl(uniqueHash, hash);
-        }
-
-        Assert.assertNull("Crawler unique hashing algorithm should return null after running out of hashing schemes", crawler.uniqueHash(hash));
+        
+        String url = "https://newyork.craigslist.org/mus/search";
+        
+        Assert.assertNotNull(crawler.uniqueHash(url));
+        crawler.addVisitedUrl(crawler.uniqueHash(url), url);
+        Assert.assertNull(crawler.uniqueHash(url));
     }
 
     @Test
@@ -76,5 +82,25 @@ public class CrawlerTest {
         
         Assert.assertEquals("/106402933672/videos/10153671119698673/?theater", 
                 Crawler.getUrlPathFrom("https://www.facebook.com/106402933672/videos/10153671119698673/?theater"));
+        
+        Assert.assertEquals("/", Crawler.getUrlPathFrom("http://www.augminish.com/"));
+    }
+    
+    @Test
+    public void addLinksToQueueTest() throws FailingHttpStatusCodeException, MalformedURLException, IOException {
+        String url = "http://augminish.com/tests/queue_test.html";
+        String[] queuedUrls = {"http://augminish.com/tests/queue_test.html?link=0", "http://augminish.com/testing", 
+                "http://augminish.com/testing/javascript_test.html", "http://augminish.com/index.html?redirect=true&testing=inProgress"
+        };
+        
+        Document document = Jsoup.parse(wc.getPage(url).getWebResponse().getContentAsString());
+        crawler.mockDocumentObject(document);
+        crawler.queue(url);
+        
+        for (String qu : queuedUrls) {
+            Assert.assertEquals(qu, crawler.getQueue().poll());
+        }
+        
+        Assert.assertTrue(crawler.getQueue().isEmpty());
     }
 }

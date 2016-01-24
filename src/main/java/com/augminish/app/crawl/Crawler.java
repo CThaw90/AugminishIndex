@@ -27,6 +27,7 @@ public class Crawler extends Thread {
     private static final String WebSitesTable = "`SearchIndex`.WebSites";
 
     private HashMap<String, String> visited;
+    private HashMap<String, String> ignore;
     private Queue<String> queue;
 
     private PropertyHashMap propertyHashMap;
@@ -34,22 +35,24 @@ public class Crawler extends Thread {
     private MySQL mysql;
 
     private WebResponse response;
-    private WebClient webclient;
+    private WebClient webClient;
 
     private Document document;
 
-    public Crawler(List<String> seeds) {
+    public Crawler(List<String> seeds, List<String> ignored) {
 
-        webclient = new WebClient(com.gargoylesoftware.htmlunit.BrowserVersion.FIREFOX_38);
+        webClient = new WebClient(com.gargoylesoftware.htmlunit.BrowserVersion.FIREFOX_38);
         visited = new HashMap<String, String>();
         queue = new LinkedList<String>(seeds);
         filehandler = new FileHandler();
         mysql = new MySQL();
+        ignore(ignored);
     }
 
     /*** Constructor used for JUnit testing purposes ***/
     protected Crawler() {
         visited = new HashMap<String, String>();
+        queue = new LinkedList<String>();
     }
 
     @Override
@@ -71,26 +74,26 @@ public class Crawler extends Thread {
 
     protected void crawl() throws IOException {
 
+        webClient.getOptions().setCssEnabled(false);
         propertyHashMap = new PropertyHashMap();
 
-        String url, path, domain, content;
         loadOutdatedWebSites();
         loadVisitedWebSites();
+        String url, content;
 
         while (!queue.isEmpty()) {
             try {
-                response = webclient.getPage(queue.poll()).getWebResponse();
-                url = response.getWebRequest().getUrl().toExternalForm();
-                content = response.getContentAsString();
-                domain = getDomainFrom(url);
-                path = getUrlPathFrom(url);
-    
-                if (save(getProtocolFrom(url), domain, path, content)) {
-                    // TODO: Place this logic in another thread for efficiency
-                    document = Jsoup.parse(stripHtmlCodes(content));
-                    queue(url);
+                if (!ignore.containsKey(getDomainFrom(queue.peek()))) {
+                    response = webClient.getPage(queue.poll()).getWebResponse();
+                    url = response.getWebRequest().getUrl().toExternalForm();
+                    content = response.getContentAsString();
+        
+                    if (save(url, content)) {
+                        // TODO: Place this logic in another thread for efficiency
+                        document = Jsoup.parse(stripHtmlCodes(content));
+                        queue(url);
+                    }
                 }
-                
             }
             catch (FailingHttpStatusCodeException fhse) {
                 // TODO: Store Http Status Code Exception for human investigation
@@ -103,12 +106,12 @@ public class Crawler extends Thread {
         // TODO: [LOGGER] Publicly log Crawler has run out of queues
     }
     
-    private void queue(String url) {
+    protected void queue(String url) {
         
         Elements attributes = document.child(0).select("a");
         for (Element href : attributes) {
             if (href.hasAttr("href") && !href.attr("href").replaceAll("[\\s]+", "").isEmpty()) {
-                queue.add(buildFullUrl(url, href.attr("attr")));
+                queue.add(buildFullUrl(url, href.attr("href")));
             }
         }
     }
@@ -129,17 +132,22 @@ public class Crawler extends Thread {
         return url.toString();
     }
 
-    protected String uniqueHash(String hash) {
-
+    protected String uniqueHash(String url) {
+        
+        String hash = org.apache.commons.codec.binary.Base64.encodeBase64String(url.getBytes());
         int fullLength = hash.length(), offset = 0, start = 0, end = 7;
         boolean unique = false;
 
         while (!unique && !(start == 0 && end > fullLength)) {
-
-            unique = !visited.containsKey(hash.substring(start + offset, end + offset));
-            if (!unique) {
+            String subset = hash.substring(start + offset, end + offset);
+            unique = !visited.containsKey(subset);
+            if (!unique && !visited.get(subset).equals(url)) {
                 offset = (offset + end < fullLength ? offset + 1 : 0);
                 end = (end <= fullLength && offset == 0 ? end + 1 : end);
+                
+            } else if (!unique) {
+                unique = false;
+                break;
             }
         }
 
@@ -158,12 +166,17 @@ public class Crawler extends Thread {
         return url.replaceAll("http(s)?://[\\w]+\\.(.*?)(?=/)", "");
     }
 
-    private boolean save(int secure, String domain, String url, String content) throws IOException {
-        String hashedUrl = uniqueHash(org.apache.commons.codec.binary.Base64.encodeBase64String(url.getBytes()));
-        boolean saved = filehandler.save(domain, hashedUrl, content);
+    private boolean save(String url, String content) throws IOException {
+        String secure = String.valueOf(getProtocolFrom(url)), domain = getDomainFrom(url), 
+                path = getUrlPathFrom(url), hash = uniqueHash(url);
+        boolean saved = hash != null && 
+                filehandler.save(propertyHashMap.get("file.cache") + "/" + domain, hash, content) && 
+                mysql.insert(SqlBuilder.insert(WebSitesTable, "domain", "url", "secure", "hash").values(domain, path, secure, hash).commit());
+        
         if (saved) {
-        //    mysql.insert(SqlBuilder.insert("domain", "url", "" columns))
+            visited.put(hash, url);
         }
+
         return saved;
     }
 
@@ -175,7 +188,7 @@ public class Crawler extends Thread {
             connected = mysql.use(propertyHashMap.get("mysql.database"));
         }
         if (connected) {
-            values = mysql.select(SqlBuilder.select(WebSitesTable, "domain", "url", "secure", "hash", "needsUpdate").where("needsUpdate == 0").commit());
+            values = mysql.select(SqlBuilder.select(WebSitesTable, "domain", "url", "secure", "hash", "needsUpdate").where("needsUpdate = 0").commit());
             for (HashMap<String, Object> value : values) {
                 visited.put((String) value.get("hash"), buildFullUrl(value));
             }
@@ -193,13 +206,20 @@ public class Crawler extends Thread {
             connected = mysql.use(propertyHashMap.get("mysql.database"));
         }
         if (connected) {
-            values = mysql.select(SqlBuilder.select(WebSitesTable, "domain", "url", "secure", "hash", "needsUpdate").where("needsUpdate == 1").commit());
+            values = mysql.select(SqlBuilder.select(WebSitesTable, "domain", "url", "secure", "hash", "needsUpdate").where("needsUpdate = 1").commit());
             for (HashMap<String, Object> value : values) {
                 queue.add(buildFullUrl(value));
             }
         }
         else {
             // TODO: Create a recovery algorithm for a failed MySQL connection
+        }
+    }
+    
+    private void ignore(List<String> ignored) {
+        ignore = new HashMap<String, String>();
+        for (String _ignore : ignored) {
+            ignore.put(getDomainFrom(_ignore), _ignore);
         }
     }
     
@@ -214,7 +234,7 @@ public class Crawler extends Thread {
         return fullUrl.toString();
     }
 
-    /*** Methods used for JUnit testing purposes ***/
+    /*** Methods used for JUnit testing purposes ONLY ***/
 
     protected void addVisitedUrl(String hash, String url) {
         visited.put(hash, url);
@@ -222,5 +242,13 @@ public class Crawler extends Thread {
 
     protected String getVisitedUrl(String key) {
         return visited.get(key);
+    }
+    
+    protected void mockDocumentObject(Document document) {
+        this.document = document;
+    }
+    
+    protected Queue<String> getQueue() {
+        return queue;
     }
 }
