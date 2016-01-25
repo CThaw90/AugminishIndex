@@ -4,7 +4,6 @@ import com.augminish.app.common.util.file.FileHandler;
 import com.augminish.app.common.util.mysql.MySQL;
 import com.augminish.app.common.util.mysql.helper.SqlBuilder;
 import com.augminish.app.common.util.object.PropertyHashMap;
-
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.WebResponse;
@@ -21,6 +20,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.logging.Level;
 
 public class Crawler extends Thread {
 
@@ -42,17 +42,22 @@ public class Crawler extends Thread {
     public Crawler(List<String> seeds, List<String> ignored) {
 
         webClient = new WebClient(com.gargoylesoftware.htmlunit.BrowserVersion.FIREFOX_38);
+        webClient.getOptions().setThrowExceptionOnScriptError(false);
         visited = new HashMap<String, String>();
         queue = new LinkedList<String>(seeds);
         filehandler = new FileHandler();
         mysql = new MySQL();
+
+        if (ignored == null)
+            ignored = new ArrayList<String>();
+
         ignore(ignored);
+
+        Runtime.getRuntime().addShutdownHook(new Thread(new ShutDown()));
     }
 
     /*** Constructor used for JUnit testing purposes ***/
     protected Crawler() {
-        visited = new HashMap<String, String>();
-        queue = new LinkedList<String>();
     }
 
     @Override
@@ -74,6 +79,8 @@ public class Crawler extends Thread {
 
     protected void crawl() throws IOException {
 
+        java.util.logging.Logger.getLogger("com.gargoylesoftware.htmlunit").setLevel(Level.OFF);
+
         webClient.getOptions().setCssEnabled(false);
         propertyHashMap = new PropertyHashMap();
 
@@ -87,7 +94,7 @@ public class Crawler extends Thread {
                     response = webClient.getPage(queue.poll()).getWebResponse();
                     url = response.getWebRequest().getUrl().toExternalForm();
                     content = response.getContentAsString();
-        
+
                     if (save(url, content)) {
                         // TODO: Place this logic in another thread for efficiency
                         document = Jsoup.parse(stripHtmlCodes(content));
@@ -105,9 +112,9 @@ public class Crawler extends Thread {
 
         // TODO: [LOGGER] Publicly log Crawler has run out of queues
     }
-    
+
     protected void queue(String url) {
-        
+
         Elements attributes = document.child(0).select("a");
         for (Element href : attributes) {
             if (href.hasAttr("href") && !href.attr("href").replaceAll("[\\s]+", "").isEmpty()) {
@@ -115,11 +122,11 @@ public class Crawler extends Thread {
             }
         }
     }
-    
+
     protected static String buildFullUrl(String parent, String child) {
-        
+
         StringBuilder url = new StringBuilder();
-        
+
         if (!child.matches("http(s)?://.*")) {
             url.append(parent.replaceAll("//.*", ""));
             url.append("//" + getDomainFrom(parent));
@@ -127,13 +134,13 @@ public class Crawler extends Thread {
                 url.append(getUrlPathFrom(parent));
             }
         }
-                
+
         url.append(child);
         return url.toString();
     }
 
     protected String uniqueHash(String url) {
-        
+
         String hash = org.apache.commons.codec.binary.Base64.encodeBase64String(url.getBytes());
         int fullLength = hash.length(), offset = 0, start = 0, end = 7;
         boolean unique = false;
@@ -144,8 +151,9 @@ public class Crawler extends Thread {
             if (!unique && !visited.get(subset).equals(url)) {
                 offset = (offset + end < fullLength ? offset + 1 : 0);
                 end = (end <= fullLength && offset == 0 ? end + 1 : end);
-                
-            } else if (!unique) {
+
+            }
+            else if (!unique) {
                 unique = false;
                 break;
             }
@@ -153,7 +161,7 @@ public class Crawler extends Thread {
 
         return unique ? hash.substring(start + offset, end + offset) : null;
     }
-    
+
     protected static int getProtocolFrom(String url) {
         return url.startsWith("https") ? 1 : 0;
     }
@@ -167,12 +175,10 @@ public class Crawler extends Thread {
     }
 
     private boolean save(String url, String content) throws IOException {
-        String secure = String.valueOf(getProtocolFrom(url)), domain = getDomainFrom(url), 
-                path = getUrlPathFrom(url), hash = uniqueHash(url);
-        boolean saved = hash != null && 
-                filehandler.save(propertyHashMap.get("file.cache") + "/" + domain, hash, content) && 
-                mysql.insert(SqlBuilder.insert(WebSitesTable, "domain", "url", "secure", "hash").values(domain, path, secure, hash).commit());
-        
+        String secure = String.valueOf(getProtocolFrom(url)), domain = getDomainFrom(url), path = getUrlPathFrom(url), hash = uniqueHash(url);
+        boolean saved = hash != null && filehandler.save(propertyHashMap.get("file.cache") + "/" + domain, hash, content)
+                && mysql.insert(SqlBuilder.insert(WebSitesTable, "domain", "url", "secure", "hash").values(domain, path, secure, hash).commit());
+
         if (saved) {
             visited.put(hash, url);
         }
@@ -215,15 +221,15 @@ public class Crawler extends Thread {
             // TODO: Create a recovery algorithm for a failed MySQL connection
         }
     }
-    
+
     private void ignore(List<String> ignored) {
         ignore = new HashMap<String, String>();
         for (String _ignore : ignored) {
             ignore.put(getDomainFrom(_ignore), _ignore);
         }
     }
-    
-    protected static String stripHtmlCodes (String content) {
+
+    protected static String stripHtmlCodes(String content) {
         return content.replaceAll("&(.*?);", " ");
     }
 
@@ -234,21 +240,65 @@ public class Crawler extends Thread {
         return fullUrl.toString();
     }
 
+    private class ShutDown implements Runnable {
+
+        @Override
+        public void run() {
+            System.out.println("Urls left in queue (" + queue.size() + ") = = = = =");
+            for (String q : queue) {
+                System.out.println(q);
+            }
+
+            System.out.println("Urls visited (" + visited.keySet().size() + ") = = = = = =");
+            for (String key : visited.keySet()) {
+                System.out.println(visited.get(key));
+            }
+        }
+    }
+
     /*** Methods used for JUnit testing purposes ONLY ***/
 
-    protected void addVisitedUrl(String hash, String url) {
-        visited.put(hash, url);
-    }
-
-    protected String getVisitedUrl(String key) {
-        return visited.get(key);
-    }
-    
     protected void mockDocumentObject(Document document) {
         this.document = document;
     }
-    
-    protected Queue<String> getQueue() {
+
+    protected void mockIgnoredObject(HashMap<String, String> ignore) {
+        this.ignore = ignore;
+    }
+
+    protected void mockQueueObject(Queue<String> queue) {
+        this.queue = queue;
+    }
+
+    protected void mockVisitedObject(HashMap<String, String> visited) {
+        this.visited = visited;
+    }
+
+    protected void mockWebClientObject(WebClient webClient) {
+        this.webClient = webClient;
+    }
+
+    protected Document getDocumentObject() {
+        return document;
+    }
+
+    protected HashMap<String, String> getIgnoredObject() {
+        return ignore;
+    }
+
+    protected Queue<String> getQueueObject() {
         return queue;
+    }
+
+    protected HashMap<String, String> getVisitedObject() {
+        return visited;
+    }
+
+    protected WebClient getWebClientObject() {
+        return webClient;
+    }
+
+    protected WebResponse getWebResponseObject() {
+        return response;
     }
 }

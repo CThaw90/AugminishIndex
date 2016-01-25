@@ -44,10 +44,14 @@ public class PropertyHashMap {
         return hashMap.get(key);
     }
 
+    public boolean contains(String key) {
+        return hashMap.containsKey(key);
+    }
+
     public String[] getSeedAsArray() {
         return hashMap.containsKey("crawler.seed") ? hashMap.get("crawler.seed").split(",") : null;
     }
-    
+
     public String[] getIgnoredAsArray() {
         return hashMap.containsKey("crawler.ignore") ? hashMap.get("crawler.ignore").split(",") : null;
     }

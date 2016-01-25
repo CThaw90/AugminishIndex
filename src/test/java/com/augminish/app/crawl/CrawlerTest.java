@@ -2,6 +2,7 @@ package com.augminish.app.crawl;
 
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import com.gargoylesoftware.htmlunit.WebClient;
+import com.gargoylesoftware.htmlunit.WebClientOptions;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -12,19 +13,18 @@ import org.junit.Test;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.HashMap;
+import java.util.LinkedList;
 
 public class CrawlerTest {
 
     private static Crawler crawler;
-    private static WebClient wc;
 
     @BeforeClass
     public static void initialize() {
-        
+
         crawler = new Crawler();
-        wc = new WebClient();
     }
-    
+
     @Test
     public void getProtocolFromUrlTest() {
         Assert.assertEquals(Crawler.getProtocolFrom("http://www.augminish.com/index"), 0);
@@ -46,11 +46,14 @@ public class CrawlerTest {
 
     @Test
     public void uniqueHashTest() {
-        
+
+        HashMap<String, String> visited = new HashMap<String, String>();
         String url = "https://newyork.craigslist.org/mus/search";
-        
+
+        visited.put(crawler.uniqueHash(url), url);
         Assert.assertNotNull(crawler.uniqueHash(url));
-        crawler.addVisitedUrl(crawler.uniqueHash(url), url);
+
+        crawler.mockVisitedObject(visited);
         Assert.assertNull(crawler.uniqueHash(url));
     }
 
@@ -73,34 +76,47 @@ public class CrawlerTest {
         Assert.assertEquals("Crawler Url builder shoudl create valid uri component", "https://www.facebook.com/106402933672/videos/10153671119698673/?theater",
                 Crawler.buildFullUrl(webSiteRow));
     }
-    
+
     @Test
     public void getPathFromUrlTest() {
-        
+
         Assert.assertEquals("/2016/01/21/the-49ers-relationship-with-kaepernick-becomes-even more-bizarre",
                 Crawler.getUrlPathFrom("http://profootballtalk.nbcsports.com/2016/01/21/the-49ers-relationship-with-kaepernick-becomes-even more-bizarre"));
-        
-        Assert.assertEquals("/106402933672/videos/10153671119698673/?theater", 
-                Crawler.getUrlPathFrom("https://www.facebook.com/106402933672/videos/10153671119698673/?theater"));
-        
+
+        Assert.assertEquals("/106402933672/videos/10153671119698673/?theater", Crawler.getUrlPathFrom("https://www.facebook.com/106402933672/videos/10153671119698673/?theater"));
+
         Assert.assertEquals("/", Crawler.getUrlPathFrom("http://www.augminish.com/"));
     }
-    
+
     @Test
     public void addLinksToQueueTest() throws FailingHttpStatusCodeException, MalformedURLException, IOException {
         String url = "http://augminish.com/tests/queue_test.html";
-        String[] queuedUrls = {"http://augminish.com/tests/queue_test.html?link=0", "http://augminish.com/testing", 
-                "http://augminish.com/testing/javascript_test.html", "http://augminish.com/index.html?redirect=true&testing=inProgress"
-        };
-        
-        Document document = Jsoup.parse(wc.getPage(url).getWebResponse().getContentAsString());
+        String[] queuedUrls = { "http://augminish.com/tests/queue_test.html?link=0", "http://augminish.com/testing", "http://augminish.com/testing/javascript_test.html",
+                "http://augminish.com/index.html?redirect=true&testing=inProgress" };
+
+        WebClient webClient = new WebClient();
+        Document document = Jsoup.parse(webClient.getPage(url).getWebResponse().getContentAsString());
+        crawler.mockQueueObject(new LinkedList<String>());
         crawler.mockDocumentObject(document);
         crawler.queue(url);
-        
+
         for (String qu : queuedUrls) {
-            Assert.assertEquals(qu, crawler.getQueue().poll());
+            Assert.assertEquals(qu, crawler.getQueueObject().poll());
         }
-        
-        Assert.assertTrue(crawler.getQueue().isEmpty());
+
+        Assert.assertTrue(crawler.getQueueObject().isEmpty());
+        webClient.close();
+    }
+
+    @Test
+    public void crawlSimulationTest() {
+
+        WebClient webClient = new WebClient();
+        WebClientOptions webClientOptions = webClient.getOptions();
+        webClientOptions.setThrowExceptionOnScriptError(false);
+
+        webClientOptions.setCssEnabled(false);
+
+        webClient.close();
     }
 }

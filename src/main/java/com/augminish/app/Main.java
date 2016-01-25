@@ -12,6 +12,7 @@ public class Main {
 
     private static PropertyHashMap propertyHashMap;
     private Thread crawler, indexer;
+    private static long startTime;
 
     public static void main(String[] args) throws IOException {
 
@@ -19,16 +20,21 @@ public class Main {
         propertyHashMap = new PropertyHashMap();
 
         // Start Application
+        startTime = System.currentTimeMillis();
         new Main().start();
     }
 
     private void start() throws IOException {
-        
+
         Runtime.getRuntime().addShutdownHook(new Thread(new CleanUpModule()));
-        List<String> seed = Arrays.asList(propertyHashMap.getSeedAsArray()), 
-                   ignore = Arrays.asList(propertyHashMap.getIgnoredAsArray());
-        
-        
+        List<String> seed = null, ignore = null;
+        if (propertyHashMap.contains("crawler.seed")) {
+            seed = Arrays.asList(propertyHashMap.getSeedAsArray());
+        }
+        if (propertyHashMap.contains("crawler.ignore")) {
+            ignore = Arrays.asList(propertyHashMap.getIgnoredAsArray());
+        }
+
         crawler = new Thread(new Crawler(seed, ignore), "com.augminish.app.crawl.Crawler");
         crawler.start();
 
@@ -44,11 +50,13 @@ public class Main {
             ie.printStackTrace();
         }
     }
-    
+
     private class CleanUpModule implements Runnable {
-        
+
+        @Override
         public void run() {
-            System.out.println("Augminish Indexer stopped");
+            System.out.println("Augminish Indexer stopped ===== ");
+            System.out.println("Runtime : " + (System.currentTimeMillis() - startTime) + " ms.");
         }
     }
 }
