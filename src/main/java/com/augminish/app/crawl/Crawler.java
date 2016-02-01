@@ -24,7 +24,7 @@ import java.util.logging.Level;
 
 public class Crawler extends Thread {
 
-    private static final String WebSitesTable = "`SearchIndex`.WebSites";
+    private static final String WebSitesTable = "WebSites";
 
     private HashMap<String, String> visited;
     private HashMap<String, String> ignore;
@@ -77,12 +77,17 @@ public class Crawler extends Thread {
         }
     }
 
-    protected void crawl() throws IOException {
+    protected void crawl() throws IOException, Exception {
 
         java.util.logging.Logger.getLogger("com.gargoylesoftware.htmlunit").setLevel(Level.OFF);
 
         webClient.getOptions().setCssEnabled(false);
-        propertyHashMap = new PropertyHashMap();
+        if (propertyHashMap == null) {
+            propertyHashMap = new PropertyHashMap();
+            if (!mysql.use(propertyHashMap.get("mysql.database"))) {
+                throw new Exception("[FATAL]: MySQL database access error. Could not start crawler");
+            }
+        }
 
         loadOutdatedWebSites();
         loadVisitedWebSites();
@@ -90,7 +95,7 @@ public class Crawler extends Thread {
 
         while (!queue.isEmpty()) {
             try {
-                if (!ignore.containsKey(getDomainFrom(queue.peek()))) {
+                if (!ignore.containsKey(getDomainFrom(queue.peek())) && uniqueHash(queue.peek()) != null) {
                     response = webClient.getPage(queue.poll()).getWebResponse();
                     url = response.getWebRequest().getUrl().toExternalForm();
                     content = response.getContentAsString();
@@ -100,6 +105,9 @@ public class Crawler extends Thread {
                         document = Jsoup.parse(stripHtmlCodes(content));
                         queue(url);
                     }
+                }
+                else {
+                    queue.poll();
                 }
             }
             catch (FailingHttpStatusCodeException fhse) {
@@ -128,13 +136,21 @@ public class Crawler extends Thread {
         StringBuilder url = new StringBuilder();
 
         if (!child.matches("http(s)?://.*")) {
+            String domain = getDomainFrom(parent);
             url.append(parent.replaceAll("//.*", ""));
-            url.append("//" + getDomainFrom(parent));
+            url.append("//" + (domain.matches(".*\\..*\\..*") ? domain : "www." + domain));
             if (!child.startsWith("/")) {
                 url.append(getUrlPathFrom(parent));
+                if (!parent.endsWith("/") && !child.startsWith("?") && !child.startsWith("#")) {
+                    int length = url.length(), index = url.lastIndexOf("/");
+                    url.replace(index, length, "/");
+                }
             }
+        } 
+        else if (!getDomainFrom(child).matches(".*\\..*\\..*")) {
+            child = (getProtocolFrom(child) == 1 ? "https://www." : "http://www.") + getDomainFrom(child) + getUrlPathFrom(child);
         }
-
+        
         url.append(child);
         return url.toString();
     }
@@ -276,6 +292,18 @@ public class Crawler extends Thread {
 
     protected void mockWebClientObject(WebClient webClient) {
         this.webClient = webClient;
+    }
+    
+    protected void mockMySQLObject(MySQL mysql) {
+        this.mysql = mysql;
+    }
+    
+    protected void mockPropertyHashMapObject(PropertyHashMap propertyHashMap) {
+        this.propertyHashMap = propertyHashMap;
+    }
+    
+    protected void mockFileHandlerObject(FileHandler fileHandler) {
+        this.filehandler = fileHandler;
     }
 
     protected Document getDocumentObject() {

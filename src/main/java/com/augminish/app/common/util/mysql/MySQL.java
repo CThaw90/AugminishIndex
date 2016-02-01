@@ -220,6 +220,23 @@ public class MySQL {
 
         return updated;
     }
+    
+    public boolean query(String query) {
+        
+        boolean success = false;
+        if (connected) {
+            try {
+                statement = connection.prepareStatement(query);
+                statement.execute();
+                success = true;
+            }
+            catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        
+        return success;
+    }
 
     private void loadConfig() {
         try {

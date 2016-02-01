@@ -12,12 +12,16 @@ public class PropertyHashMap {
     private static HashMap<String, String> hashMap;
     private static InputStream inputStream;
     private static Properties properties;
-
+    
     public PropertyHashMap() throws IOException {
+        this("./.ignore/config.properties");
+    }
+
+    public PropertyHashMap(String configFile) throws IOException {
 
         if (hashMap == null) {
 
-            inputStream = new FileInputStream("./.ignore/config.properties");
+            inputStream = new FileInputStream(configFile);
             properties = new Properties();
             properties.load(inputStream);
 

@@ -1,5 +1,9 @@
 package com.augminish.app.crawl;
 
+import com.augminish.app.common.util.file.FileHandler;
+import com.augminish.app.common.util.mysql.MySQL;
+import com.augminish.app.common.util.object.PropertyHashMap;
+
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.WebClientOptions;
@@ -7,23 +11,15 @@ import com.gargoylesoftware.htmlunit.WebClientOptions;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Queue;
 
 public class CrawlerTest {
-
-    private static Crawler crawler;
-
-    @BeforeClass
-    public static void initialize() {
-
-        crawler = new Crawler();
-    }
 
     @Test
     public void getProtocolFromUrlTest() {
@@ -47,12 +43,15 @@ public class CrawlerTest {
     @Test
     public void uniqueHashTest() {
 
+        Crawler crawler = new Crawler();
+        
         HashMap<String, String> visited = new HashMap<String, String>();
         String url = "https://newyork.craigslist.org/mus/search";
 
-        visited.put(crawler.uniqueHash(url), url);
+        crawler.mockVisitedObject(visited);
         Assert.assertNotNull(crawler.uniqueHash(url));
-
+        
+        visited.put(crawler.uniqueHash(url), url);
         crawler.mockVisitedObject(visited);
         Assert.assertNull(crawler.uniqueHash(url));
     }
@@ -75,6 +74,19 @@ public class CrawlerTest {
 
         Assert.assertEquals("Crawler Url builder shoudl create valid uri component", "https://www.facebook.com/106402933672/videos/10153671119698673/?theater",
                 Crawler.buildFullUrl(webSiteRow));
+        
+        String parent = "http://augminish.com/tests/crawltest/index.html";
+        String[] childs = {"https://www.twitter.com/YeahISaidItUMad", "/tests/crawltest/profile.html", "followers.html", "following.html",
+                "/tests/crawltest/settings.html", "/tests/crawltest/job_board.html", "notifications.html", "accounts.html"},
+                 
+                urls = {"https://www.twitter.com/YeahISaidItUMad", "http://www.augminish.com/tests/crawltest/profile.html",
+                        "http://www.augminish.com/tests/crawltest/followers.html", "http://www.augminish.com/tests/crawltest/following.html",
+                        "http://www.augminish.com/tests/crawltest/settings.html", "http://www.augminish.com/tests/crawltest/job_board.html",
+                        "http://www.augminish.com/tests/crawltest/notifications.html", "http://www.augminish.com/tests/crawltest/accounts.html"};
+        
+        for (int i = 0; i < childs.length; i++) {
+            Assert.assertEquals("Asserting buildFullUrl(String, String): ", urls[i], Crawler.buildFullUrl(parent, childs[i]));
+        }
     }
 
     @Test
@@ -91,10 +103,12 @@ public class CrawlerTest {
     @Test
     public void addLinksToQueueTest() throws FailingHttpStatusCodeException, MalformedURLException, IOException {
         String url = "http://augminish.com/tests/queue_test.html";
-        String[] queuedUrls = { "http://augminish.com/tests/queue_test.html?link=0", "http://augminish.com/testing", "http://augminish.com/testing/javascript_test.html",
-                "http://augminish.com/index.html?redirect=true&testing=inProgress" };
+        String[] queuedUrls = { "http://www.augminish.com/tests/queue_test.html?link=0", "http://www.augminish.com/testing", "http://www.augminish.com/testing/javascript_test.html",
+                "http://www.augminish.com/index.html?redirect=true&testing=inProgress" };
 
         WebClient webClient = new WebClient();
+        Crawler crawler = new Crawler();
+        
         Document document = Jsoup.parse(webClient.getPage(url).getWebResponse().getContentAsString());
         crawler.mockQueueObject(new LinkedList<String>());
         crawler.mockDocumentObject(document);
@@ -109,13 +123,44 @@ public class CrawlerTest {
     }
 
     @Test
-    public void crawlSimulationTest() {
-
+    public void crawlSimulationTest() throws IOException, Exception {
+        
+        Crawler crawler = new Crawler();
+        
         WebClient webClient = new WebClient();
         WebClientOptions webClientOptions = webClient.getOptions();
         webClientOptions.setThrowExceptionOnScriptError(false);
-
         webClientOptions.setCssEnabled(false);
+        crawler.mockWebClientObject(webClient);
+         
+        MySQL mysql = new MySQL();
+        mysql.use("AugminishTest");
+        crawler.mockMySQLObject(mysql);
+        
+        PropertyHashMap propertyHashMap = new PropertyHashMap("./.ignore/cache/config-test.properties");
+        crawler.mockPropertyHashMapObject(propertyHashMap);
+        
+        FileHandler fileHandler = new FileHandler();
+        fileHandler.rmdir("./.ignore/cache/www.augminish.com");
+        fileHandler.rmdir("./.ignore/cache/augminish.com");
+        crawler.mockFileHandlerObject(fileHandler);
+        
+        HashMap<String, String> ignore = new HashMap<String, String>();
+        ignore.put("www.facebook.com", "https://facebook.com/");
+        ignore.put("www.twitter.com", "https://twitter.com/");
+        crawler.mockIgnoredObject(ignore);
+        
+        HashMap<String, String> visited = new HashMap<String, String>();
+        crawler.mockVisitedObject(visited);
+        
+        Queue<String> queue = new LinkedList<String>();
+        queue.add("http://augminish.com/tests/crawltest/index.html");
+        crawler.mockQueueObject(queue);
+        
+        if(!mysql.query("TRUNCATE WebSites;")) {
+            Assert.fail("[FATAL]: MySQL truncate query failed");
+        }
+        crawler.crawl();
 
         webClient.close();
     }
