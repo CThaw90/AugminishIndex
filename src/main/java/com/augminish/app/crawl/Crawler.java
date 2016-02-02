@@ -68,12 +68,15 @@ public class Crawler extends Thread {
 
         catch (IOException ie) {
             // TODO: [LOGGER] Log that crawler has thrown an IOException
+            ie.printStackTrace();
         }
         catch (RuntimeException re) {
             // TODO: [LOGGER] Log any unforeseen RuntimeException thrown by the crawler
+            re.printStackTrace();
         }
         catch (Exception e) {
             // TODO: [LOGGER] Log all missed Exceptions that were thrown by the crawler
+            e.printStackTrace();
         }
     }
 
@@ -112,9 +115,11 @@ public class Crawler extends Thread {
             }
             catch (FailingHttpStatusCodeException fhse) {
                 // TODO: Store Http Status Code Exception for human investigation
+                fhse.printStackTrace();
             }
             catch (MalformedURLException mue) {
                 // TODO: Store a malformed Url for human investigation
+                mue.printStackTrace();
             }
         }
 
