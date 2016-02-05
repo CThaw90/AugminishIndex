@@ -2,6 +2,7 @@ package com.augminish.app.crawl;
 
 import com.augminish.app.common.util.file.FileHandler;
 import com.augminish.app.common.util.mysql.MySQL;
+import com.augminish.app.common.util.mysql.helper.SqlBuilder;
 import com.augminish.app.common.util.object.PropertyHashMap;
 
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
@@ -17,6 +18,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 
 public class CrawlerTest {
@@ -161,7 +163,34 @@ public class CrawlerTest {
             Assert.fail("[FATAL]: MySQL truncate query failed");
         }
         crawler.crawl();
-
+        
+        List<HashMap<String, Object>> sites = mysql.select(SqlBuilder.select("WebSites", "id", "domain", "url", "secure", "hash", "indexed", "needsUpdate", "lastUpdate").commit());
+        String[] urls = {"http://augminish.com/tests/crawltest/index.html?ckattempt=1", 
+                "http://www.augminish.com/tests/crawltest/profile.html?ckattempt=1",
+                "http://www.augminish.com/tests/crawltest/followers.html",
+                "http://www.augminish.com/tests/crawltest/following.html",
+                "http://www.augminish.com/tests/crawltest/settings.html",
+                "http://www.augminish.com/tests/crawltest/job_board.html",
+                "http://www.augminish.com/tests/crawltest/notifications.html",
+                "http://www.augminish.com/tests/crawltest/accounts.html",
+                "http://www.augminish.com/tests/crawltest/index.html",
+                "http://www.augminish.com/tests/crawltest/profile.html"
+        }, hash = {"aHR0cDo", "HR0cDov", "R0cDovL", "0cDovL3", "cDovL3d", "DovL3d3", "ovL3d3d", "vL3d3dy", "L3d3dy5", "3d3dy5h"};
+        int index = 0;
+        
+        for (HashMap<String, Object> site : sites) {
+            
+            Assert.assertEquals("Should match id", index + 1, site.get("id"));
+            Assert.assertEquals("Should match domain", Crawler.getDomainFrom(urls[index]), site.get("domain"));
+            Assert.assertEquals("Should match url", Crawler.getUrlPathFrom(urls[index]), site.get("url"));
+            Assert.assertEquals("Should match secure", 0, site.get("secure"));
+            Assert.assertEquals("Should match hash", hash[index], site.get("hash"));
+            Assert.assertEquals("Should match indexed", 0, site.get("indexed"));
+            Assert.assertEquals("Should match needsUpdate", 0, site.get("needsUpdate"));
+            Assert.assertNotNull("LastUpdate should not be Null", site.get("lastUpdate"));
+            index++;
+        }
+        
         webClient.close();
     }
 }
