@@ -38,7 +38,7 @@ public class Main {
         crawler = new Thread(new Crawler(seed, ignore), "com.augminish.app.crawl.Crawler");
         crawler.start();
 
-        indexer = new Thread(new Indexer(propertyHashMap.get("file.cache")), "com.augminish.app.index.Indexer");
+        indexer = new Thread(new Indexer(), "com.augminish.app.index.Indexer");
         indexer.start();
 
         try {
