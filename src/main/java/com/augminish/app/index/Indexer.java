@@ -24,6 +24,7 @@ public class Indexer extends Thread {
     private MySQL mysql;
 
     private Document document;
+    private boolean testing;
 
     public Indexer() {
 
@@ -31,6 +32,11 @@ public class Indexer extends Thread {
         fileHandler = new FileHandler();
         mysql = new MySQL();
 
+    }
+
+    // Constructor for unit testing purposes only
+    protected Indexer(boolean testing) {
+        this.testing = testing;
     }
 
     @Override
@@ -60,7 +66,7 @@ public class Indexer extends Thread {
             HashMap<String, Object> index = queue.poll();
             document = Jsoup.parse(fileHandler.read(constructFilePath(index)));
 
-            if (queue.isEmpty()) {
+            if (queue.isEmpty() && !testing) {
                 loadIndex();
             }
         }
@@ -98,5 +104,25 @@ public class Indexer extends Thread {
 
     protected void mockCacheDirectory(String cacheDir) {
         Indexer.cacheDir = cacheDir;
+    }
+
+    protected MySQL getMySQLObject() {
+        return mysql;
+    }
+
+    protected PropertyHashMap getPropertyHashMapObject() {
+        return propertyHashMap;
+    }
+
+    protected Queue<HashMap<String, Object>> getQueue() {
+        return queue;
+    }
+
+    protected FileHandler getFileHandlerObject() {
+        return fileHandler;
+    }
+
+    protected String getCacheDir() {
+        return Indexer.cacheDir;
     }
 }

@@ -22,7 +22,7 @@ public class HtmlUnitTest {
     public void initWebClient() {
         webClient = new WebClient();
     }
-    
+
     @Test
     public void downloadWebpageWithHtmlUnitTest() throws FailingHttpStatusCodeException, IOException {
 
@@ -30,13 +30,13 @@ public class HtmlUnitTest {
 
         Assert.assertEquals("WebPage response should match as expected", RESPONSE, response.getContentAsString());
     }
-    
+
     @Test
     public void webResponseAttributesTest() throws FailingHttpStatusCodeException, IOException {
-        
-        response = webClient.getPage("https://facebook.com").getWebResponse();
-        
+
+        response = webClient.getPage("https://facebook.com/?rdr=p").getWebResponse();
+
         request = response.getWebRequest();
-        Assert.assertEquals("Should match a full url", "https://www.facebook.com/?_rdr=p", request.getUrl().toExternalForm());
+        Assert.assertEquals("Should match a full url", "https://www.facebook.com/?rdr=p", request.getUrl().toExternalForm());
     }
 }
