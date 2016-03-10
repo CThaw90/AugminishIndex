@@ -24,11 +24,11 @@ import java.util.logging.Level;
 
 public class Crawler extends Thread {
 
-    private static final String WebSitesTable = "WebSites";
-
     private HashMap<String, String> visited;
     private HashMap<String, String> ignore;
     private Queue<String> queue;
+
+    private String WebSitesTable;
 
     private PropertyHashMap propertyHashMap;
     private FileHandler filehandler;
@@ -91,6 +91,12 @@ public class Crawler extends Thread {
                 throw new Exception("[FATAL]: MySQL database access error. Could not start crawler");
             }
         }
+        if (propertyHashMap.contains("crawler.cacheTable")) {
+            WebSitesTable = propertyHashMap.get("crawler.cacheTable");
+        }
+        else {
+            WebSitesTable = "WebSites";
+        }
 
         loadOutdatedWebSites();
         loadVisitedWebSites();
@@ -151,11 +157,11 @@ public class Crawler extends Thread {
                     url.replace(index, length, "/");
                 }
             }
-        } 
+        }
         else if (!getDomainFrom(child).matches(".*\\..*\\..*")) {
             child = (getProtocolFrom(child) == 1 ? "https://www." : "http://www.") + getDomainFrom(child) + getUrlPathFrom(child);
         }
-        
+
         url.append(child);
         return url.toString();
     }
@@ -215,6 +221,7 @@ public class Crawler extends Thread {
             connected = mysql.use(propertyHashMap.get("mysql.database"));
         }
         if (connected) {
+
             values = mysql.select(SqlBuilder.select(WebSitesTable, "domain", "url", "secure", "hash", "needsUpdate").where("needsUpdate = 0").commit());
             for (HashMap<String, Object> value : values) {
                 visited.put((String) value.get("hash"), buildFullUrl(value));
@@ -233,6 +240,8 @@ public class Crawler extends Thread {
             connected = mysql.use(propertyHashMap.get("mysql.database"));
         }
         if (connected) {
+            WebSitesTable = propertyHashMap.get("crawler.cacheTable");
+            WebSitesTable = WebSitesTable != null ? WebSitesTable : "WebSites";
             values = mysql.select(SqlBuilder.select(WebSitesTable, "domain", "url", "secure", "hash", "needsUpdate").where("needsUpdate = 1").commit());
             for (HashMap<String, Object> value : values) {
                 queue.add(buildFullUrl(value));
@@ -298,15 +307,15 @@ public class Crawler extends Thread {
     protected void mockWebClientObject(WebClient webClient) {
         this.webClient = webClient;
     }
-    
+
     protected void mockMySQLObject(MySQL mysql) {
         this.mysql = mysql;
     }
-    
+
     protected void mockPropertyHashMapObject(PropertyHashMap propertyHashMap) {
         this.propertyHashMap = propertyHashMap;
     }
-    
+
     protected void mockFileHandlerObject(FileHandler fileHandler) {
         this.filehandler = fileHandler;
     }

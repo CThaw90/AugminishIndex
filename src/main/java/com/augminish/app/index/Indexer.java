@@ -7,6 +7,8 @@ import com.augminish.app.common.util.object.PropertyHashMap;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -24,6 +26,10 @@ public class Indexer extends Thread {
     private MySQL mysql;
 
     private Document document;
+
+    private String WebSitesTable;
+
+    private boolean skipLoadingIndex;
     private boolean testing;
 
     public Indexer() {
@@ -31,7 +37,6 @@ public class Indexer extends Thread {
         queue = new LinkedList<HashMap<String, Object>>();
         fileHandler = new FileHandler();
         mysql = new MySQL();
-
     }
 
     // Constructor for unit testing purposes only
@@ -59,27 +64,68 @@ public class Indexer extends Thread {
     }
 
     protected void index() throws IOException, Exception {
-
         loadIndex();
         while (running) {
 
             HashMap<String, Object> index = queue.poll();
             document = Jsoup.parse(fileHandler.read(constructFilePath(index)));
+            index(document, index);
 
             if (queue.isEmpty() && !testing) {
                 loadIndex();
+            }
+
+            running = !queue.isEmpty();
+        }
+    }
+
+    private void index(Document document, HashMap<String, Object> webpageInfo) {
+        Elements elements = document.getAllElements();
+        for (Element element : elements) {
+
+            if (isNotRootDocument(element)) {
+                String tagName = element.nodeName(), hasContent = element.ownText().isEmpty() ? "0" : "1";
+                int webSiteId = (int) webpageInfo.get("id");
+                mysql.insert(SqlBuilder.insert("HyperTexts", "tag", "webSiteId", "hasContent").values(tagName, String.valueOf(webSiteId), hasContent).commit());
+                if (hasContent.equals("1")) {
+
+                }
             }
         }
     }
 
     private void loadIndex() throws IOException {
+        load(new PropertyHashMap());
+        if (skipLoadingIndex)
+            return;
 
-        propertyHashMap = new PropertyHashMap();
-        queue.addAll(mysql.select(SqlBuilder.select("WebSites", "id", "domain", "url", "secure", "hash", "indexed", "needsUpdate", "lastUpdate").where(
-                "WebSites.indexed = 0 AND WebSites.needsUpdate = 0").commit()));
+        queue.addAll(mysql.select(SqlBuilder.select(WebSitesTable, "id", "domain", "url", "secure", "hash", "indexed", "needsUpdate", "lastUpdate").where(
+                WebSitesTable + ".indexed = 0 AND " + WebSitesTable + ".needsUpdate = 0").commit()));
 
-        cacheDir = propertyHashMap.get("file.cache");
         running = !queue.isEmpty();
+    }
+
+    private void load(PropertyHashMap propertyHashMap) {
+        if (propertyHashMap.contains("indexer.cacheTable")) {
+            WebSitesTable = propertyHashMap.get("indexer.cacheTable");
+        }
+        else {
+            WebSitesTable = "WebSites";
+        }
+
+        if (propertyHashMap.contains("indexer.cacheDir")) {
+            cacheDir = propertyHashMap.get("indexer.cacheDir");
+        }
+        else if (propertyHashMap.contains("file.cache")) {
+            cacheDir = propertyHashMap.get("file.cache");
+        }
+        else {
+            cacheDir = "./.ignore/tests/cache";
+        }
+    }
+
+    protected static boolean isNotRootDocument(Element element) {
+        return !element.nodeName().equals("#document");
     }
 
     protected static String constructFilePath(HashMap<String, Object> index) {
@@ -124,5 +170,9 @@ public class Indexer extends Thread {
 
     protected String getCacheDir() {
         return Indexer.cacheDir;
+    }
+
+    protected void skipLoadingIndex() {
+        skipLoadingIndex = true;
     }
 }
