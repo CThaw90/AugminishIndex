@@ -163,7 +163,7 @@ public class CrawlerTest {
         crawler.mockVisitedObject(visited);
 
         Queue<String> queue = new LinkedList<String>();
-        queue.add("http://augminish.com/tests/crawltest/index.html");
+        queue.add("http://www.augminish.com/tests/crawltest/index.html");
         crawler.mockQueueObject(queue);
 
         if (!mysql.query("TRUNCATE WebSites;")) {
@@ -172,17 +172,16 @@ public class CrawlerTest {
         crawler.crawl();
 
         List<HashMap<String, Object>> sites = mysql.select(SqlBuilder.select("WebSites", "id", "domain", "url", "secure", "hash", "indexed", "needsUpdate", "lastUpdate").commit());
-        String[] urls = { "http://augminish.com/tests/crawltest/index.html?ckattempt=1",
-                "http://www.augminish.com/tests/crawltest/profile.html?ckattempt=1",
+        String[] urls = { "http://www.augminish.com/tests/crawltest/index.html?ckattempt=1",
+                "http://www.augminish.com/tests/crawltest/profile.html",
                 "http://www.augminish.com/tests/crawltest/followers.html",
                 "http://www.augminish.com/tests/crawltest/following.html",
                 "http://www.augminish.com/tests/crawltest/settings.html",
                 "http://www.augminish.com/tests/crawltest/job_board.html",
                 "http://www.augminish.com/tests/crawltest/notifications.html",
                 "http://www.augminish.com/tests/crawltest/accounts.html",
-                "http://www.augminish.com/tests/crawltest/index.html",
-                "http://www.augminish.com/tests/crawltest/profile.html"
-        }, hash = { "aHR0cDo", "HR0cDov", "R0cDovL", "0cDovL3", "cDovL3d", "DovL3d3", "ovL3d3d", "vL3d3dy", "L3d3dy5", "3d3dy5h" };
+                "http://www.augminish.com/tests/crawltest/index.html"
+        }, hash = { "aHR0cDo", "HR0cDov", "R0cDovL", "0cDovL3", "cDovL3d", "DovL3d3", "ovL3d3d", "vL3d3dy", "L3d3dy5" };
         int index = 0;
 
         Assert.assertEquals(urls.length, sites.size());

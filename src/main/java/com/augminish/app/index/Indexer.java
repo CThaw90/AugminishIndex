@@ -13,6 +13,7 @@ import org.jsoup.select.Elements;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 
 public class Indexer extends Thread {
@@ -54,11 +55,11 @@ public class Indexer extends Thread {
             ie.printStackTrace();
         }
         catch (RuntimeException re) {
-            // TODO: [LOGGER] Log any unforeseen RuntimeException thrown by the crawler
+            // TODO: [LOGGER] Log any unforeseen RuntimeException thrown by the indexer
             re.printStackTrace();
         }
         catch (Exception e) {
-            // TODO: [LOGGER] Log all missed Exception that were thrown by the crawler
+            // TODO: [LOGGER] Log all missed Exception that were thrown by the indexer
             e.printStackTrace();
         }
     }
@@ -66,31 +67,58 @@ public class Indexer extends Thread {
     protected void index() throws IOException, Exception {
         loadIndex();
         while (running) {
+            try {
+                HashMap<String, Object> index = queue.poll();
+                document = Jsoup.parse(fileHandler.read(constructFilePath(index)));
+                index(document, index);
 
-            HashMap<String, Object> index = queue.poll();
-            document = Jsoup.parse(fileHandler.read(constructFilePath(index)));
-            index(document, index);
+                if (queue.isEmpty() && !testing) {
+                    loadIndex();
+                }
 
-            if (queue.isEmpty() && !testing) {
-                loadIndex();
+                running = !queue.isEmpty();
             }
-
-            running = !queue.isEmpty();
+            catch (IOException ie) {
+                // TODO: [LOGGER] Log that indexer has thrown an IOException
+                throw new IOException(ie);
+            }
         }
     }
 
     private void index(Document document, HashMap<String, Object> webpageInfo) {
         Elements elements = document.getAllElements();
+        List<HashMap<String, Object>> result;
+        boolean mysqlSuccess = false;
         for (Element element : elements) {
 
             if (isNotRootDocument(element)) {
                 String tagName = element.nodeName(), hasContent = element.ownText().isEmpty() ? "0" : "1";
                 int webSiteId = (int) webpageInfo.get("id");
-                mysql.insert(SqlBuilder.insert("HyperTexts", "tag", "webSiteId", "hasContent").values(tagName, String.valueOf(webSiteId), hasContent).commit());
-                if (hasContent.equals("1")) {
+                mysqlSuccess = mysql.insert(SqlBuilder.insert("HyperTexts", "tag", "webSiteId", "hasContent").values(
+                        tagName, String.valueOf(webSiteId), hasContent).commit());
+                if (hasContent.equals("1") && mysqlSuccess) {
+                    result = mysql.select(SqlBuilder.select("HyperTexts", "MAX(id) AS id").where(
+                            "webSiteId = " + webSiteId + " group by webSiteId").commit());
 
+                    mysqlSuccess = mysql.insert(SqlBuilder.insert("Content", "hyperTextId", "content").values(
+                            String.valueOf(result.get(0).get("id")), element.ownText()).commit());
+
+                    if (mysqlSuccess) {
+                        HashMap<String, Integer> wordFrequency = getWordFrequency(element.ownText());
+                        for (String word : wordFrequency.keySet()) {
+                            mysqlSuccess = mysql.insert(SqlBuilder.insert("WordFrequency", "word", "frequency", "hyperTextId", "webSiteId").values(
+                                    word, wordFrequency.get(word).toString(), String.valueOf(result.get(0).get("id")), String.valueOf(webSiteId)).commit());
+                        }
+                    }
                 }
             }
+        }
+
+        if (mysqlSuccess) {
+            mysql.update(SqlBuilder.update(WebSitesTable, "indexed").values("1").where("id = " + webpageInfo.get("id")).commit());
+        }
+        else {
+            // TODO: [LOGGER] Log that this webpage could not be properly indexed due to mysql insertion error
         }
     }
 
@@ -122,6 +150,26 @@ public class Indexer extends Thread {
         else {
             cacheDir = "./.ignore/tests/cache";
         }
+    }
+
+    protected static HashMap<String, Integer> getWordFrequency(String text) {
+        HashMap<String, Integer> wordFrequency = new HashMap<String, Integer>();
+        String[] words = sanitize(text).split(" ");
+        for (String word : words) {
+
+            if (wordFrequency.containsKey(word.trim())) {
+                wordFrequency.put(word.trim(), wordFrequency.get(word.trim()) + 1);
+            }
+            else if (!word.trim().isEmpty()) {
+                wordFrequency.put(word.trim(), 1);
+            }
+        }
+
+        return wordFrequency;
+    }
+
+    protected static String sanitize(String data) {
+        return data.replaceAll("[^\\w\\s]", "");
     }
 
     protected static boolean isNotRootDocument(Element element) {
