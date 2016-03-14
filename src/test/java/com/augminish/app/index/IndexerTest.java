@@ -1,7 +1,8 @@
 package com.augminish.app.index;
 
-import static com.augminish.app.index.helper.StaticString.ContentAssertion;
-import static com.augminish.app.index.helper.StaticString.HyperTextAssertion;
+import static com.augminish.app.common.util.strings.StaticStringTest.ContentAssertion;
+import static com.augminish.app.common.util.strings.StaticStringTest.HyperTextAssertion;
+import static com.augminish.app.common.util.strings.StaticStringTest.WordFrequencyAssertion;
 
 import com.augminish.app.common.util.file.FileHandler;
 import com.augminish.app.common.util.mysql.MySQL;
@@ -96,7 +97,8 @@ public class IndexerTest {
         List<HashMap<String, Object>> content = mysql.select(SqlBuilder.select("Content", "hyperTextId", "content").commit());
         assertContent(content);
 
-        List<HashMap<String, Object>> wordFrequency = mysql.select(SqlBuilder.select("WordFrequency", "word", "frequency", "hyperTextId", "webSiteId").commit());
+        List<HashMap<String, Object>> wordFrequency = mysql.select(SqlBuilder.select("WordFrequency", "word", "frequency", "hyperTextId", "webSiteId")
+                .where("webSiteId=1").commit());
         assertWordFrequency(wordFrequency);
     }
 
@@ -104,13 +106,13 @@ public class IndexerTest {
 
         int index = 0, tag = 0, webSiteId = 1, hasContent = 2;
         for (HashMap<String, Object> hypertext : hypertexts) {
-            String[] values = HyperTextAssertion[index].split(":");
+            String[] values = HyperTextAssertion[index++].split(":");
 
             Assert.assertEquals(values[tag], hypertext.get("tag"));
-            Assert.assertEquals(values[webSiteId], hypertext.get("webSiteId"));
-            Assert.assertEquals(values[hasContent], hypertext.get("hasContent"));
+            Assert.assertEquals(values[webSiteId], String.valueOf(hypertext.get("webSiteId")));
+            Assert.assertEquals(values[hasContent], String.valueOf(hypertext.get("hasContent")));
 
-            if (++index == HyperTextAssertion.length) {
+            if (index >= HyperTextAssertion.length) {
                 System.out.println(hypertext);
                 break;
             }
@@ -121,11 +123,12 @@ public class IndexerTest {
 
         int index = 0, hyperTextId = 0, contents = 1;
         for (HashMap<String, Object> c : content) {
-            String[] values = ContentAssertion[index++].split(":");
+            String[] values = ContentAssertion[index++].split(":", 2);
 
-            Assert.assertEquals(values[hyperTextId], c.get("hyperTextId"));
+            Assert.assertEquals(values[hyperTextId], String.valueOf(c.get("hyperTextId")));
             Assert.assertEquals(values[contents], c.get("content"));
-            if (++index == ContentAssertion.length) {
+            if (index >= ContentAssertion.length) {
+                System.out.println(c);
                 break;
             }
         }
@@ -133,5 +136,34 @@ public class IndexerTest {
 
     private static void assertWordFrequency(List<HashMap<String, Object>> wordFrequency) {
 
+        HashMap<String, Boolean> wordFrequencyHashMap = fromListToHashMap(WordFrequencyAssertion);
+        int index = 0;
+        for (HashMap<String, Object> w : wordFrequency) {
+            String key = createWordFrequencyKey(w);
+            System.out.println(key);
+
+            Assert.assertTrue(wordFrequencyHashMap.get(key));
+            if (index >= WordFrequencyAssertion.length) {
+                break;
+            }
+        }
+    }
+
+    private static HashMap<String, Boolean> fromListToHashMap(String[] list) {
+
+        HashMap<String, Boolean> hashMap = new HashMap<String, Boolean>();
+        for (String entry : list) {
+            hashMap.put(entry, Boolean.TRUE);
+        }
+
+        return hashMap;
+    }
+
+    private static String createWordFrequencyKey(HashMap<String, Object> wordFrequency) {
+        StringBuilder wfk = new StringBuilder(wordFrequency.get("word").toString());
+        wfk.append(":").append(wordFrequency.get("frequency")).append(":");
+        wfk.append(wordFrequency.get("hyperTextId")).append(":");
+        wfk.append(wordFrequency.get("webSiteId"));
+        return wfk.toString();
     }
 }
