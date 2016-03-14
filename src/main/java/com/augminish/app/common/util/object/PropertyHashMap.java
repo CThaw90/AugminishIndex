@@ -12,7 +12,8 @@ public class PropertyHashMap {
     private static HashMap<String, String> hashMap;
     private static InputStream inputStream;
     private static Properties properties;
-    
+    private static Boolean initializing;
+
     public PropertyHashMap() throws IOException {
         this("./.ignore/config.properties");
     }
@@ -20,7 +21,7 @@ public class PropertyHashMap {
     public PropertyHashMap(String configFile) throws IOException {
 
         if (hashMap == null) {
-
+            initializing = Boolean.TRUE;
             inputStream = new FileInputStream(configFile);
             properties = new Properties();
             properties.load(inputStream);
@@ -31,6 +32,8 @@ public class PropertyHashMap {
 
             if (properties != null)
                 initialize();
+
+            initializing = Boolean.FALSE;
         }
     }
 
@@ -45,22 +48,33 @@ public class PropertyHashMap {
     }
 
     public String get(String key) {
+        waitUntilInitialized();
         return hashMap.get(key);
     }
 
     public boolean contains(String key) {
+        waitUntilInitialized();
         return hashMap.containsKey(key);
     }
 
     public String[] getSeedAsArray() {
+        waitUntilInitialized();
         return hashMap.containsKey("crawler.seed") ? hashMap.get("crawler.seed").split(",") : null;
     }
 
     public String[] getIgnoredAsArray() {
+        waitUntilInitialized();
         return hashMap.containsKey("crawler.ignore") ? hashMap.get("crawler.ignore").split(",") : null;
     }
 
     protected String[] getSeedAsArray(boolean test) {
+        waitUntilInitialized();
         return hashMap.containsKey("crawler.seedTest") ? hashMap.get("crawler.seedTest").split(",") : null;
+    }
+
+    private static final void waitUntilInitialized() {
+        while (initializing) {
+            ;
+        }
     }
 }

@@ -1,11 +1,13 @@
 package com.augminish.app.common.util.mysql;
 
 import com.augminish.app.common.util.mysql.helper.SqlBuilder;
+import com.augminish.app.common.util.object.PropertyHashMap;
 
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.List;
@@ -17,7 +19,9 @@ public class MySQLTest {
     private static MySQL mysql;
 
     @BeforeClass
-    public static void init() {
+    public static void init() throws IOException {
+        PropertyHashMap p = new PropertyHashMap("./.ignore/config-test.properties");
+        Assert.assertTrue(p.contains("file.cache"));
         mysql = new MySQL();
     }
 
@@ -47,37 +51,37 @@ public class MySQLTest {
     @Test
     public void mysqlSelectTest() {
         String seed = generateSeed(System.currentTimeMillis());
-        
+
         makeSureMySQLisConnected();
         makeSureMySQLTestDatabaseExists();
         Assert.assertTrue(mysql.use(TEST_DB));
         Assert.assertTrue(makeSureMySQLTestTableExists());
         Assert.assertTrue(makeSureMySQLTestRowExists(seed));
-        
-        List<HashMap<String, Object>> result = mysql.select(SqlBuilder.select(TEST_TABLE, "id", "testString").where("testString='"+seed+"'").commit());
+
+        List<HashMap<String, Object>> result = mysql.select(SqlBuilder.select(TEST_TABLE, "id", "testString").where("testString='" + seed + "'").commit());
         Assert.assertEquals("MySQL should return a hashed data object with a matching test string", seed, result.get(0).get("testString"));
         Assert.assertFalse("MySQL should return one hashed data object in a list", result.isEmpty());
     }
-    
+
     @Test
     public void mysqlUpdateTest() {
-        
+
         String seed = generateSeed(System.currentTimeMillis()), previous = null;
-        
+
         makeSureMySQLisConnected();
         makeSureMySQLTestDatabaseExists();
         Assert.assertTrue(mysql.use(TEST_DB));
         Assert.assertTrue(makeSureMySQLTestTableExists());
         Assert.assertTrue(makeSureMySQLTestRowExists(seed));
-        
+
         List<HashMap<String, Object>> result = mysql.select(SqlBuilder.select(TEST_TABLE, "id", "testString").commit());
         previous = result.get(result.size() - 1).get("testString").toString();
-        
-        Assert.assertTrue(mysql.update(SqlBuilder.update(TEST_TABLE, "testString").values(seed).where("testString='"+previous+"'").commit()));
-        result = mysql.select(SqlBuilder.select(TEST_TABLE, "id", "testString").where("testString='"+seed+"'").commit());
-        
+
+        Assert.assertTrue(mysql.update(SqlBuilder.update(TEST_TABLE, "testString").values(seed).where("testString='" + previous + "'").commit()));
+        result = mysql.select(SqlBuilder.select(TEST_TABLE, "id", "testString").where("testString='" + seed + "'").commit());
+
         Assert.assertFalse("MySQL updated row should exist", result.isEmpty());
-        
+
     }
 
     private static void makeSureMySQLisConnected() {
@@ -93,7 +97,7 @@ public class MySQLTest {
         if (!mysql.isConnected() || mysql.disconnect()) {
         }
     }
-    
+
     private static boolean makeSureMySQLTestDatabaseExists() {
         return mysql.create(SqlBuilder.createDatabase(TEST_DB).commit());
     }
@@ -101,11 +105,11 @@ public class MySQLTest {
     private static boolean makeSureMySQLTestTableExists() {
         return mysql.create(SqlBuilder.createTable(TEST_TABLE, "id INT(11) NOT NULL AUTO_INCREMENT", "testString VARCHAR(512) NOT NULL", "PRIMARY KEY (id)").commit());
     }
-    
+
     private static boolean makeSureMySQLTestRowExists(String s) {
         return mysql.insert(SqlBuilder.insert(TEST_TABLE, "testString").values(s).commit());
     }
-    
+
     private static String generateSeed(long timeInMillis) {
         return new BigInteger(String.valueOf(timeInMillis)).toString(32);
     }

@@ -79,6 +79,7 @@ public class IndexerTest {
 
         MySQL mysql = new MySQL();
         mysql.use("AugminishTest");
+        System.out.println(mysql);
         indexer.mockMySQLObject(mysql);
 
         indexer.mockQueueObject(new LinkedList<HashMap<String, Object>>());
@@ -113,7 +114,6 @@ public class IndexerTest {
             Assert.assertEquals(values[hasContent], String.valueOf(hypertext.get("hasContent")));
 
             if (index >= HyperTextAssertion.length) {
-                System.out.println(hypertext);
                 break;
             }
         }
@@ -128,7 +128,6 @@ public class IndexerTest {
             Assert.assertEquals(values[hyperTextId], String.valueOf(c.get("hyperTextId")));
             Assert.assertEquals(values[contents], c.get("content"));
             if (index >= ContentAssertion.length) {
-                System.out.println(c);
                 break;
             }
         }

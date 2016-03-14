@@ -220,9 +220,9 @@ public class MySQL {
 
         return updated;
     }
-    
+
     public boolean query(String query) {
-        
+
         boolean success = false;
         if (connected) {
             try {
@@ -234,7 +234,7 @@ public class MySQL {
                 e.printStackTrace();
             }
         }
-        
+
         return success;
     }
 
@@ -254,5 +254,12 @@ public class MySQL {
 
     public boolean isConnected() {
         return connected;
+    }
+
+    @Override
+    public String toString() {
+        return new StringBuilder("[hostname=").append(hostname).append(", username=").append(username)
+                .append(", password=").append(password).append(", database=").append(database)
+                .append(", port=").append(port).append(", connected=").append(connected).toString();
     }
 }
