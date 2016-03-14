@@ -4,7 +4,6 @@ import static com.augminish.app.common.util.strings.StaticStringTest.ContentAsse
 import static com.augminish.app.common.util.strings.StaticStringTest.HyperTextAssertion;
 import static com.augminish.app.common.util.strings.StaticStringTest.WordFrequencyAssertion;
 
-import com.augminish.app.common.util.file.FileHandler;
 import com.augminish.app.common.util.mysql.MySQL;
 import com.augminish.app.common.util.mysql.helper.SqlBuilder;
 import com.augminish.app.common.util.object.PropertyHashMap;
@@ -15,7 +14,6 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 
 public class IndexerTest {
@@ -75,15 +73,8 @@ public class IndexerTest {
 
         Indexer indexer = new Indexer(isTesting);
 
-        indexer.mockPropertyHashMapObject(new PropertyHashMap());
-
         MySQL mysql = new MySQL();
         mysql.use("AugminishTest");
-        System.out.println(mysql);
-        indexer.mockMySQLObject(mysql);
-
-        indexer.mockQueueObject(new LinkedList<HashMap<String, Object>>());
-        indexer.mockFileHandlerObject(new FileHandler());
 
         Assert.assertTrue(mysql.update(SqlBuilder.update("WebSitesIndex", "indexed").values("0").where("true").commit()));
         Assert.assertTrue(mysql.query("TRUNCATE WordFrequency;"));

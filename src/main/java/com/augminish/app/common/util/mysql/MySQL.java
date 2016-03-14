@@ -42,8 +42,12 @@ public class MySQL {
 
     private boolean connected;
 
+    public MySQL(boolean connect) {
+        loadConfig(connect);
+    }
+
     public MySQL() {
-        loadConfig();
+        loadConfig(false);
     }
 
     protected boolean connect() {
@@ -238,7 +242,7 @@ public class MySQL {
         return success;
     }
 
-    private void loadConfig() {
+    private void loadConfig(boolean connect) {
         try {
             propertyHashMap = new PropertyHashMap();
             port = Integer.parseInt(propertyHashMap.get("mysql.port"));
@@ -246,10 +250,18 @@ public class MySQL {
             username = propertyHashMap.get("mysql.username");
             password = propertyHashMap.get("mysql.password");
             database = propertyHashMap.get("mysql.database");
+            if (connect && configurationValid()) {
+                use(database);
+            }
         }
         catch (IOException ie) {
             ie.printStackTrace();
         }
+    }
+
+    private boolean configurationValid() {
+        return hostname != null && username != null &&
+                password != null && database != null;
     }
 
     public boolean isConnected() {

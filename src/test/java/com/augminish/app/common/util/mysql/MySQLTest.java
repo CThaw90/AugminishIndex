@@ -95,6 +95,10 @@ public class MySQLTest {
 
     private static void makeSureMySQLisDisconnected() {
         if (!mysql.isConnected() || mysql.disconnect()) {
+            return;
+        }
+        else {
+            throw new RuntimeException("Could not disconnect from the MySQL Server");
         }
     }
 

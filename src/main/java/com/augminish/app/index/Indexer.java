@@ -22,7 +22,6 @@ public class Indexer extends Thread {
     private static String cacheDir;
     private boolean running;
 
-    private PropertyHashMap propertyHashMap;
     private FileHandler fileHandler;
     private MySQL mysql;
 
@@ -34,10 +33,6 @@ public class Indexer extends Thread {
     private boolean testing;
 
     public Indexer() {
-
-        queue = new LinkedList<HashMap<String, Object>>();
-        fileHandler = new FileHandler();
-        mysql = new MySQL();
     }
 
     // Constructor for unit testing purposes only
@@ -123,7 +118,10 @@ public class Indexer extends Thread {
     }
 
     private void loadIndex() throws IOException {
+        queue = new LinkedList<HashMap<String, Object>>();
+        fileHandler = new FileHandler();
         load(new PropertyHashMap());
+        mysql = new MySQL(true);
         if (skipLoadingIndex)
             return;
 
@@ -178,46 +176,6 @@ public class Indexer extends Thread {
 
     protected static String constructFilePath(HashMap<String, Object> index) {
         return cacheDir + "/" + index.get("domain") + "/" + index.get("hash");
-    }
-
-    protected void mockMySQLObject(MySQL mysql) {
-        this.mysql = mysql;
-    }
-
-    protected void mockPropertyHashMapObject(PropertyHashMap propertyHashMap) {
-        this.propertyHashMap = propertyHashMap;
-    }
-
-    protected void mockQueueObject(Queue<HashMap<String, Object>> queue) {
-        this.queue = queue;
-    }
-
-    protected void mockFileHandlerObject(FileHandler fileHandler) {
-        this.fileHandler = fileHandler;
-    }
-
-    protected void mockCacheDirectory(String cacheDir) {
-        Indexer.cacheDir = cacheDir;
-    }
-
-    protected MySQL getMySQLObject() {
-        return mysql;
-    }
-
-    protected PropertyHashMap getPropertyHashMapObject() {
-        return propertyHashMap;
-    }
-
-    protected Queue<HashMap<String, Object>> getQueue() {
-        return queue;
-    }
-
-    protected FileHandler getFileHandlerObject() {
-        return fileHandler;
-    }
-
-    protected String getCacheDir() {
-        return Indexer.cacheDir;
     }
 
     protected void skipLoadingIndex() {

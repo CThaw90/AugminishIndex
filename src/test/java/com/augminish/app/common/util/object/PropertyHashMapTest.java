@@ -13,7 +13,6 @@ public class PropertyHashMapTest {
     private static final String[] seedTest = { "https://newyork.craigslist.org/search/muc", "https://newjersey.craigslist.org/search/muc",
             "https://pittsburgh.craigslist.org/search/muc" };
     private static PropertyHashMap propertyHashMap;
-    private static final boolean TEST = Boolean.TRUE;
 
     @BeforeClass
     public static void init() throws IOException {
