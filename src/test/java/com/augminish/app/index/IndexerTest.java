@@ -92,6 +92,9 @@ public class IndexerTest {
         List<HashMap<String, Object>> wordFrequency = mysql.select(SqlBuilder.select("WordFrequency", "word", "frequency", "hyperTextId", "webSiteId")
                 .where("webSiteId=1").commit());
         assertWordFrequency(wordFrequency);
+
+        List<HashMap<String, Object>> indexedWebSites = mysql.select(SqlBuilder.select("WebSitesIndex", "url").where("indexed = 1").commit());
+        Assert.assertEquals(10, indexedWebSites.size());
     }
 
     private static void assertHyperTexts(List<HashMap<String, Object>> hypertexts) {
@@ -130,7 +133,6 @@ public class IndexerTest {
         int index = 0;
         for (HashMap<String, Object> w : wordFrequency) {
             String key = createWordFrequencyKey(w);
-            System.out.println(key);
 
             Assert.assertTrue(wordFrequencyHashMap.get(key));
             if (index >= WordFrequencyAssertion.length) {

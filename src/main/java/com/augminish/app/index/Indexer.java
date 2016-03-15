@@ -33,6 +33,7 @@ public class Indexer extends Thread {
     private boolean testing;
 
     public Indexer() {
+        Runtime.getRuntime().addShutdownHook(new Thread(new ShutDown()));
     }
 
     // Constructor for unit testing purposes only
@@ -68,6 +69,7 @@ public class Indexer extends Thread {
                 index(document, index);
 
                 if (queue.isEmpty() && !testing) {
+                    Thread.sleep(1000);
                     loadIndex();
                 }
 
@@ -146,7 +148,7 @@ public class Indexer extends Thread {
             cacheDir = propertyHashMap.get("file.cache");
         }
         else {
-            cacheDir = "./.ignore/tests/cache";
+            cacheDir = "./.ignore/cache";
         }
     }
 
@@ -180,5 +182,50 @@ public class Indexer extends Thread {
 
     protected void skipLoadingIndex() {
         skipLoadingIndex = true;
+    }
+
+    private class ShutDown implements Runnable {
+
+        @Override
+        public void run() {
+            System.out.println("Augminish Indexer Module stopped ===== ");
+            System.out.println("Remaining WebSites to be indexed: ");
+            for (HashMap<String, Object> q : queue) {
+
+                System.out.print(createRow(q.get("id")));
+                System.out.print(createRow(q.get("domain")));
+                System.out.print(createRow(q.get("url")));
+                System.out.print(createRow(q.get("secure")));
+                System.out.print(createRow(q.get("hash")));
+                System.out.println(createRow(q.get("lastUpdate")));
+
+                System.out.print(createValue(q.get("id")));
+                System.out.print(createValue(q.get("domain")));
+                System.out.print(createValue(q.get("url")));
+                System.out.print(createValue(q.get("secure")));
+                System.out.print(createValue(q.get("hash")));
+                System.out.print(createValue(q.get("lastUpdate")));
+            }
+        }
+
+        private String createRow(Object o) {
+            StringBuilder row = new StringBuilder("--");
+            int index = 0, length = strlen(o);
+            while (index++ < length) {
+                row.append("-");
+            }
+
+            return row.toString();
+        }
+
+        private int strlen(Object o) {
+            return o.toString().length();
+        }
+
+        private String createValue(Object o) {
+            StringBuilder value = new StringBuilder("| ");
+            value.append(o).append(" ");
+            return value.toString();
+        }
     }
 }

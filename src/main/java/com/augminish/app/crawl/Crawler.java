@@ -16,6 +16,7 @@ import org.jsoup.select.Elements;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -39,25 +40,27 @@ public class Crawler extends Thread {
 
     private Document document;
 
-    public Crawler(List<String> seeds, List<String> ignored) {
+    public Crawler() {
 
-        webClient = new WebClient(com.gargoylesoftware.htmlunit.BrowserVersion.FIREFOX_38);
-        webClient.getOptions().setThrowExceptionOnScriptError(false);
-        visited = new HashMap<String, String>();
-        queue = new LinkedList<String>(seeds);
-        filehandler = new FileHandler();
-        mysql = new MySQL();
-
-        if (ignored == null)
-            ignored = new ArrayList<String>();
-
-        ignore(ignored);
+        try {
+            load(new PropertyHashMap());
+        }
+        catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
 
         Runtime.getRuntime().addShutdownHook(new Thread(new ShutDown()));
     }
 
-    /*** Constructor used for JUnit testing purposes ***/
-    protected Crawler() {
+    /* For JUnit testing purposes only. Avoid calling ShutdownHook */
+    protected Crawler(boolean isTesting) {
+        try {
+            load(new PropertyHashMap());
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -213,6 +216,21 @@ public class Crawler extends Thread {
         return saved;
     }
 
+    private void load(PropertyHashMap propertyHashMap) {
+        webClient = new WebClient(com.gargoylesoftware.htmlunit.BrowserVersion.FIREFOX_38);
+        webClient.getOptions().setThrowExceptionOnScriptError(false);
+        visited = new HashMap<String, String>();
+        filehandler = new FileHandler();
+        mysql = new MySQL();
+
+        if (propertyHashMap.contains("crawler.seed")) {
+            queue = new LinkedList<String>(Arrays.asList(propertyHashMap.getSeedAsArray()));
+        }
+        if (propertyHashMap.contains("crawler.ignore")) {
+            ignore(Arrays.asList(propertyHashMap.getIgnoredAsArray()));
+        }
+    }
+
     private void loadVisitedWebSites() {
 
         List<HashMap<String, Object>> values = new ArrayList<HashMap<String, Object>>();
@@ -304,26 +322,6 @@ public class Crawler extends Thread {
         this.visited = visited;
     }
 
-    protected void mockWebClientObject(WebClient webClient) {
-        this.webClient = webClient;
-    }
-
-    protected void mockMySQLObject(MySQL mysql) {
-        this.mysql = mysql;
-    }
-
-    protected void mockPropertyHashMapObject(PropertyHashMap propertyHashMap) {
-        this.propertyHashMap = propertyHashMap;
-    }
-
-    protected void mockFileHandlerObject(FileHandler fileHandler) {
-        this.filehandler = fileHandler;
-    }
-
-    protected Document getDocumentObject() {
-        return document;
-    }
-
     protected HashMap<String, String> getIgnoredObject() {
         return ignore;
     }
@@ -334,13 +332,5 @@ public class Crawler extends Thread {
 
     protected HashMap<String, String> getVisitedObject() {
         return visited;
-    }
-
-    protected WebClient getWebClientObject() {
-        return webClient;
-    }
-
-    protected WebResponse getWebResponseObject() {
-        return response;
     }
 }

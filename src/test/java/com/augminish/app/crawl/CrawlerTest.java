@@ -6,7 +6,6 @@ import com.augminish.app.common.util.mysql.helper.SqlBuilder;
 import com.augminish.app.common.util.object.PropertyHashMap;
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import com.gargoylesoftware.htmlunit.WebClient;
-import com.gargoylesoftware.htmlunit.WebClientOptions;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -22,6 +21,8 @@ import java.util.List;
 import java.util.Queue;
 
 public class CrawlerTest {
+
+    private static Boolean isTesting = Boolean.TRUE;
 
     @BeforeClass
     public static void init() throws IOException {
@@ -51,7 +52,7 @@ public class CrawlerTest {
     @Test
     public void uniqueHashTest() {
 
-        Crawler crawler = new Crawler();
+        Crawler crawler = new Crawler(isTesting);
 
         HashMap<String, String> visited = new HashMap<String, String>();
         String url = "https://newyork.craigslist.org/mus/search";
@@ -116,9 +117,10 @@ public class CrawlerTest {
                 "http://www.augminish.com/index.html?redirect=true&testing=inProgress" };
 
         WebClient webClient = new WebClient();
-        Crawler crawler = new Crawler();
+        Crawler crawler = new Crawler(isTesting);
 
         Document document = Jsoup.parse(webClient.getPage(url).getWebResponse().getContentAsString());
+
         crawler.mockQueueObject(new LinkedList<String>());
         crawler.mockDocumentObject(document);
         crawler.queue(url);
@@ -134,25 +136,15 @@ public class CrawlerTest {
     @Test
     public void crawlSimulationTest() throws IOException, Exception {
 
-        Crawler crawler = new Crawler();
-
-        WebClient webClient = new WebClient();
-        WebClientOptions webClientOptions = webClient.getOptions();
-        webClientOptions.setThrowExceptionOnScriptError(false);
-        webClientOptions.setCssEnabled(false);
-        crawler.mockWebClientObject(webClient);
+        Crawler crawler = new Crawler(isTesting);
 
         MySQL mysql = new MySQL();
         mysql.use("AugminishTest");
-        crawler.mockMySQLObject(mysql);
-
-        PropertyHashMap propertyHashMap = new PropertyHashMap();
-        crawler.mockPropertyHashMapObject(propertyHashMap);
 
         FileHandler fileHandler = new FileHandler();
+        PropertyHashMap propertyHashMap = new PropertyHashMap();
         fileHandler.rmdir(propertyHashMap.get("file.cache") + "/www.augminish.com");
         fileHandler.rmdir(propertyHashMap.get("file.cache") + "/augminish.com");
-        crawler.mockFileHandlerObject(fileHandler);
 
         HashMap<String, String> ignore = new HashMap<String, String>();
         ignore.put("www.facebook.com", "https://facebook.com/");
@@ -197,7 +189,5 @@ public class CrawlerTest {
             Assert.assertNotNull("LastUpdate should not be Null", site.get("lastUpdate"));
             index++;
         }
-
-        webClient.close();
     }
 }
