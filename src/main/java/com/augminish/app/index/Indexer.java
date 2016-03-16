@@ -3,6 +3,7 @@ package com.augminish.app.index;
 import com.augminish.app.common.util.file.FileHandler;
 import com.augminish.app.common.util.mysql.MySQL;
 import com.augminish.app.common.util.mysql.helper.SqlBuilder;
+import com.augminish.app.common.util.mysql.helper.SqlEntity;
 import com.augminish.app.common.util.object.PropertyHashMap;
 
 import org.jsoup.Jsoup;
@@ -18,8 +19,11 @@ import java.util.Queue;
 
 public class Indexer extends Thread {
 
+    private static final int WORD_LENGTH_LIMIT = 60;
+
     private Queue<HashMap<String, Object>> queue;
     private static String cacheDir;
+    private Long sleepTimeout;
     private boolean running;
 
     private FileHandler fileHandler;
@@ -29,7 +33,6 @@ public class Indexer extends Thread {
 
     private String WebSitesTable;
 
-    private boolean skipLoadingIndex;
     private boolean testing;
 
     public Indexer() {
@@ -45,6 +48,7 @@ public class Indexer extends Thread {
     public void run() {
         try {
             index();
+
         }
         catch (IOException ie) {
             // TODO: [LOGGER] Log that indexer has thrown an IOException
@@ -58,6 +62,8 @@ public class Indexer extends Thread {
             // TODO: [LOGGER] Log all missed Exception that were thrown by the indexer
             e.printStackTrace();
         }
+
+        System.out.println("[LOGGER] com.augminish.app.index.Indexer exited");
     }
 
     protected void index() throws IOException, Exception {
@@ -69,7 +75,7 @@ public class Indexer extends Thread {
                 index(document, index);
 
                 if (queue.isEmpty() && !testing) {
-                    Thread.sleep(1000);
+                    Thread.sleep(sleepTimeout);
                     loadIndex();
                 }
 
@@ -97,14 +103,16 @@ public class Indexer extends Thread {
                     result = mysql.select(SqlBuilder.select("HyperTexts", "MAX(id) AS id").where(
                             "webSiteId = " + webSiteId + " group by webSiteId").commit());
 
-                    mysqlSuccess = mysql.insert(SqlBuilder.insert("Content", "hyperTextId", "content").values(
-                            String.valueOf(result.get(0).get("id")), element.ownText()).commit());
+                    mysqlSuccess = mysql.insert(SqlBuilder.insert("Content", SqlEntity.column("hyperTextId"), SqlEntity.column("content")).values(
+                            SqlEntity.value(result.get(0).get("id")).integer(), SqlEntity.value(element.ownText()).text()).commit());
 
                     if (mysqlSuccess) {
                         HashMap<String, Integer> wordFrequency = getWordFrequency(element.ownText());
                         for (String word : wordFrequency.keySet()) {
-                            mysqlSuccess = mysql.insert(SqlBuilder.insert("WordFrequency", "word", "frequency", "hyperTextId", "webSiteId").values(
-                                    word, wordFrequency.get(word).toString(), String.valueOf(result.get(0).get("id")), String.valueOf(webSiteId)).commit());
+                            if (word.length() > WORD_LENGTH_LIMIT) {
+                                mysqlSuccess = mysql.insert(SqlBuilder.insert("WordFrequency", "word", "frequency", "hyperTextId", "webSiteId").values(
+                                        word, wordFrequency.get(word).toString(), String.valueOf(result.get(0).get("id")), String.valueOf(webSiteId)).commit());
+                            }
                         }
                     }
                 }
@@ -119,18 +127,21 @@ public class Indexer extends Thread {
         }
     }
 
-    private void loadIndex() throws IOException {
+    private void loadIndex() throws IOException, InterruptedException {
         queue = new LinkedList<HashMap<String, Object>>();
         fileHandler = new FileHandler();
         load(new PropertyHashMap());
         mysql = new MySQL(true);
-        if (skipLoadingIndex)
-            return;
-
+        running = true;
+        if (!testing) {
+            Thread.sleep(sleepTimeout);
+        }
         queue.addAll(mysql.select(SqlBuilder.select(WebSitesTable, "id", "domain", "url", "secure", "hash", "indexed", "needsUpdate", "lastUpdate").where(
                 WebSitesTable + ".indexed = 0 AND " + WebSitesTable + ".needsUpdate = 0").commit()));
 
-        running = !queue.isEmpty();
+        if (testing) {
+            running = !queue.isEmpty();
+        }
     }
 
     private void load(PropertyHashMap propertyHashMap) {
@@ -149,6 +160,19 @@ public class Indexer extends Thread {
         }
         else {
             cacheDir = "./.ignore/cache";
+        }
+        if (propertyHashMap.contains("indexer.sleepTimeout")) {
+            try {
+                sleepTimeout = Long.parseLong(propertyHashMap.get("indexer.sleepTimeout"));
+            }
+            catch (NumberFormatException nfe) {
+                System.out.println("Assigning default sleep timeout value");
+                sleepTimeout = 30000L;
+            }
+        }
+        else {
+            System.out.println("Assigning default sleep timeout value");
+            sleepTimeout = 30000L;
         }
     }
 
@@ -178,10 +202,6 @@ public class Indexer extends Thread {
 
     protected static String constructFilePath(HashMap<String, Object> index) {
         return cacheDir + "/" + index.get("domain") + "/" + index.get("hash");
-    }
-
-    protected void skipLoadingIndex() {
-        skipLoadingIndex = true;
     }
 
     private class ShutDown implements Runnable {

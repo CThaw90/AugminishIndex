@@ -15,6 +15,7 @@ import org.jsoup.select.Elements;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -129,6 +130,11 @@ public class Crawler extends Thread {
             catch (MalformedURLException mue) {
                 // TODO: Store a malformed Url for human investigation
                 mue.printStackTrace();
+            }
+            catch (SocketTimeoutException ste) {
+                // TODO: Store the url that caused socket timeout for human investigation
+                ste.printStackTrace();
+                Thread.sleep(1000);
             }
         }
 
