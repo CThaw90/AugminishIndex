@@ -1,5 +1,6 @@
 package com.augminish.app.crawl;
 
+import com.augminish.app.common.exceptions.ExceptionManager;
 import com.augminish.app.common.util.file.FileHandler;
 import com.augminish.app.common.util.mysql.MySQL;
 import com.augminish.app.common.util.mysql.helper.SqlBuilder;
@@ -190,4 +191,36 @@ public class CrawlerTest {
             index++;
         }
     }
+
+    @Test(expected = ExceptionManager.class)
+    public void thrownExceptionManagerMalFormedUrlTest() throws Exception {
+
+        Crawler crawl = new Crawler(isTesting);
+
+        Queue<String> queue = new LinkedList<String>();
+        queue.add("www.https.//facebook.com/malformed-url-testing");
+
+        crawl.mockQueueObject(queue);
+        crawl.crawl();
+    }
+
+    // Don't think an IOException can be invoked
+    @Test(expected = ExceptionManager.class)
+    public void thrownExceptionManagerIOTest() throws Exception {
+
+        throw new ExceptionManager("com.augminish.app.crawl.CrawlTest", "");
+    }
+
+    @Test(expected = ExceptionManager.class)
+    public void thrownExceptionManagerFailingHttpStatusCodeTest() throws Exception {
+
+        Crawler crawl = new Crawler(isTesting);
+
+        Queue<String> queue = new LinkedList<String>();
+        queue.add("http://127.0.0.1/augminish/index.php");
+
+        crawl.mockQueueObject(queue);
+        crawl.crawl();
+    }
+
 }

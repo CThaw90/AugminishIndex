@@ -1,5 +1,6 @@
 package com.augminish.app.crawl;
 
+import com.augminish.app.common.exceptions.ExceptionManager;
 import com.augminish.app.common.util.file.FileHandler;
 import com.augminish.app.common.util.mysql.MySQL;
 import com.augminish.app.common.util.mysql.helper.SqlBuilder;
@@ -26,6 +27,8 @@ import java.util.logging.Level;
 
 public class Crawler extends Thread {
 
+    private static final String ABSOLUTE_CLASS_NAME = "com.augminish.app.crawler.Crawler";
+
     private HashMap<String, String> visited;
     private HashMap<String, String> ignore;
     private Queue<String> queue;
@@ -40,6 +43,7 @@ public class Crawler extends Thread {
     private WebClient webClient;
 
     private Document document;
+    private boolean isTesting;
 
     public Crawler() {
 
@@ -56,7 +60,10 @@ public class Crawler extends Thread {
 
     /* For JUnit testing purposes only. Avoid calling ShutdownHook */
     protected Crawler(boolean isTesting) {
+
+        this.isTesting = isTesting;
         try {
+
             load(new PropertyHashMap());
         }
         catch (IOException e) {
@@ -69,11 +76,6 @@ public class Crawler extends Thread {
         try {
             crawl();
         }
-
-        catch (IOException ie) {
-            // TODO: [LOGGER] Log that crawler has thrown an IOException
-            ie.printStackTrace();
-        }
         catch (RuntimeException re) {
             // TODO: [LOGGER] Log any unforeseen RuntimeException thrown by the crawler
             re.printStackTrace();
@@ -84,7 +86,7 @@ public class Crawler extends Thread {
         }
     }
 
-    protected void crawl() throws IOException, Exception {
+    protected void crawl() throws RuntimeException, Exception {
 
         java.util.logging.Logger.getLogger("com.gargoylesoftware.htmlunit").setLevel(Level.OFF);
 
@@ -109,32 +111,39 @@ public class Crawler extends Thread {
         while (!queue.isEmpty()) {
             try {
                 if (!ignore.containsKey(getDomainFrom(queue.peek())) && uniqueHash(queue.peek()) != null) {
-                    response = webClient.getPage(queue.poll()).getWebResponse();
-                    url = response.getWebRequest().getUrl().toExternalForm();
-                    content = response.getContentAsString();
-
-                    if (save(url, content)) {
-                        // TODO: Place this logic in another thread for efficiency
-                        document = Jsoup.parse(stripHtmlCodes(content));
-                        queue(url);
+                    try {
+                        response = webClient.getPage(queue.poll()).getWebResponse();
+                        url = response.getWebRequest().getUrl().toExternalForm();
+                        content = response.getContentAsString();
+                        if (save(url, content)) {
+                            // TODO: Place this logic in another thread for efficiency
+                            document = Jsoup.parse(stripHtmlCodes(content));
+                            queue(url);
+                        }
+                    }
+                    catch (SocketTimeoutException ste) {
+                        throw new ExceptionManager(ABSOLUTE_CLASS_NAME, ste.toString());
+                    }
+                    catch (FailingHttpStatusCodeException fhse) {
+                        throw new ExceptionManager(ABSOLUTE_CLASS_NAME, fhse.toString());
+                    }
+                    catch (MalformedURLException mue) {
+                        throw new ExceptionManager(ABSOLUTE_CLASS_NAME, mue.toString());
+                    }
+                    catch (IOException ioe) {
+                        throw new ExceptionManager(ABSOLUTE_CLASS_NAME, ioe.toString());
                     }
                 }
                 else {
                     queue.poll();
                 }
             }
-            catch (FailingHttpStatusCodeException fhse) {
-                // TODO: Store Http Status Code Exception for human investigation
-                fhse.printStackTrace();
-            }
-            catch (MalformedURLException mue) {
-                // TODO: Store a malformed Url for human investigation
-                mue.printStackTrace();
-            }
-            catch (SocketTimeoutException ste) {
-                // TODO: Store the url that caused socket timeout for human investigation
-                ste.printStackTrace();
-                Thread.sleep(1000);
+            catch (ExceptionManager em) {
+                em.log();
+                if (isTesting) {
+                    throw new ExceptionManager(ABSOLUTE_CLASS_NAME, "");
+                }
+
             }
         }
 

@@ -50,6 +50,11 @@ public class MySQL {
         loadConfig(false);
     }
 
+    public MySQL(String database) {
+        loadConfig(false);
+        use(database);
+    }
+
     protected boolean connect() {
 
         if (!connected) {

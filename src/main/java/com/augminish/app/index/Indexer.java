@@ -19,6 +19,7 @@ import java.util.Queue;
 
 public class Indexer extends Thread {
 
+    private static final String CONJUCTION_REGEX = "";
     private static final int WORD_LENGTH_LIMIT = 60;
 
     private Queue<HashMap<String, Object>> queue;
@@ -109,7 +110,7 @@ public class Indexer extends Thread {
                     if (mysqlSuccess) {
                         HashMap<String, Integer> wordFrequency = getWordFrequency(element.ownText());
                         for (String word : wordFrequency.keySet()) {
-                            if (word.length() > WORD_LENGTH_LIMIT) {
+                            if (qualifiedWord(word)) {
                                 mysqlSuccess = mysql.insert(SqlBuilder.insert("WordFrequency", "word", "frequency", "hyperTextId", "webSiteId").values(
                                         word, wordFrequency.get(word).toString(), String.valueOf(result.get(0).get("id")), String.valueOf(webSiteId)).commit());
                             }
@@ -124,6 +125,7 @@ public class Indexer extends Thread {
         }
         else {
             // TODO: [LOGGER] Log that this webpage could not be properly indexed due to mysql insertion error
+
         }
     }
 
@@ -176,11 +178,15 @@ public class Indexer extends Thread {
         }
     }
 
+    private boolean qualifiedWord(String word) {
+        return word.length() < WORD_LENGTH_LIMIT && !word.matches(CONJUCTION_REGEX);
+    }
+
     protected static HashMap<String, Integer> getWordFrequency(String text) {
         HashMap<String, Integer> wordFrequency = new HashMap<String, Integer>();
         String[] words = sanitize(text).split(" ");
         for (String word : words) {
-
+            // TODO: Make these words lower case add to unit testing scenarios
             if (wordFrequency.containsKey(word.trim())) {
                 wordFrequency.put(word.trim(), wordFrequency.get(word.trim()) + 1);
             }

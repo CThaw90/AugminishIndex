@@ -34,7 +34,6 @@ public class SqlBuilder {
         if (cache == null) {
             cache = new SqlBuilder();
             SqlBuilder.createTable(table, columns);
-
         }
         else if (cache != null && statusIS(SqlBuilderState.OPEN)) {
             query = new StringBuilder("CREATE TABLE IF NOT EXISTS");
